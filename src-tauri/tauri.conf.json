@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicegui/tauri/feat/v2/core/tauri-config-schema/schema.json",
   "productName": "SnapTranslate",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "identifier": "snaptranslate",
   "build": {
     "beforeDevCommand": "npm run dev",

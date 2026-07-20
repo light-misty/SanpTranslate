@@ -1,6 +1,6 @@
 [package]
 name = "snap-translate"
-version = "1.2.6"
+version = "1.2.7"
 description = "A snapshot translation tool"
 authors = ["XuMingKe"]
 edition = "2024"
