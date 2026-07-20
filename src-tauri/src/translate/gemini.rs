@@ -25,6 +25,7 @@ pub(super) fn build_request_body(
     // - system 独立为 systemInstruction.parts[0].text
     // - user 文本放入 contents[0].parts[0].text
     // - maxOutputTokens 固定 4096
+    // - thinkingConfig.thinkingBudget=0：显式关闭思考链
     // 注意：model 参数不进入请求体（Gemini 在 URL 路径中携带 model），此处保留参数以与其他 Provider 签名一致
     let _ = model;
     serde_json::json!({
@@ -46,7 +47,11 @@ pub(super) fn build_request_body(
             ]
         },
         "generationConfig": {
-            "maxOutputTokens": 4096
+            "maxOutputTokens": 4096,
+            // 显式关闭思考链
+            "thinkingConfig": {
+                "thinkingBudget": 0
+            }
         }
     })
 }
@@ -161,6 +166,9 @@ mod tests {
 
         // 验证 generationConfig.maxOutputTokens 固定为 4096
         assert_eq!(body["generationConfig"]["maxOutputTokens"].as_i64(), Some(4096));
+
+        // 验证 thinkingConfig.thinkingBudget=0
+        assert_eq!(body["generationConfig"]["thinkingConfig"]["thinkingBudget"].as_i64(), Some(0));
     }
 
     /// 验证成功响应可正确解析出译文

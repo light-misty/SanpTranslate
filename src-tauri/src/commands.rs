@@ -431,7 +431,11 @@ pub async fn test_api_connection(
                 let body = serde_json::json!({
                     "model": model,
                     "max_tokens": 5,
-                    "messages": [{"role": "user", "content": "Hello"}]
+                    "messages": [{"role": "user", "content": "Hello"}],
+                    // 显式关闭思考链
+                    "thinking": {
+                        "type": "disabled"
+                    }
                 });
                 let headers: Vec<(&str, String)> = vec![
                     ("x-api-key", api_key.clone()),
@@ -451,9 +455,15 @@ pub async fn test_api_connection(
                     base.trim_end_matches('/'),
                     model
                 );
+                // thinkingConfig.thinkingBudget=0：显式关闭思考链，避免 Gemini 2.5+ 默认启用 thinking 导致额外延迟和 token 消耗
                 let body = serde_json::json!({
                     "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
-                    "generationConfig": {"maxOutputTokens": 5}
+                    "generationConfig": {
+                        "maxOutputTokens": 5,
+                        "thinkingConfig": {
+                            "thinkingBudget": 0
+                        }
+                    }
                 });
                 let headers: Vec<(&str, String)> = vec![
                     ("x-goog-api-key", api_key.clone()),

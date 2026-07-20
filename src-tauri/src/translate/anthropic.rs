@@ -25,6 +25,7 @@ pub(super) fn build_request_body(
     // - system 字段独立于 messages
     // - max_tokens 固定 4096
     // - user content 格式与 OpenAI 一致
+    // - thinking 字段显式关闭
     serde_json::json!({
         "model": model,
         "max_tokens": 4096,
@@ -34,7 +35,11 @@ pub(super) fn build_request_body(
                 "role": "user",
                 "content": format!("将以下文本翻译为{}：\n{}", target_language, text)
             }
-        ]
+        ],
+        // 显式关闭思考链
+        "thinking": {
+            "type": "disabled"
+        }
     })
 }
 
@@ -156,6 +161,9 @@ mod tests {
         let user_content = messages[0]["content"].as_str().expect("content 应为字符串");
         assert!(user_content.contains("zh-CN"));
         assert!(user_content.contains("Hello"));
+
+        // 验证 thinking 字段已显式关闭
+        assert_eq!(body["thinking"]["type"], "disabled");
     }
 
     /// 验证成功响应可正确解析出译文
