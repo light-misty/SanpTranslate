@@ -29,67 +29,6 @@
             </n-form>
           </n-card>
 
-          <!-- 更新设置区域 -->
-          <n-card :title="t('settings.updateConfig')" size="small">
-            <n-form label-placement="left" label-width="100" :show-feedback="false">
-              <!-- 当前版本 -->
-              <n-form-item :label="t('settings.currentVersion')">
-                <n-text style="font-size: 13px">{{ appVersion }}</n-text>
-              </n-form-item>
-              <!-- 自动更新开关 -->
-              <n-form-item :label="t('settings.autoUpdate')">
-                <n-switch
-                  v-model:value="formData.auto_update"
-                />
-              </n-form-item>
-              <!-- 手动检查更新 -->
-              <n-form-item :label="t('settings.checkUpdate')">
-                <n-space align="center" :size="8">
-                  <n-button
-                    size="small"
-                    :loading="checkingUpdate"
-                    :disabled="isDev"
-                    @click="onCheckUpdate"
-                  >
-                    {{ t('settings.checkUpdateBtn') }}
-                  </n-button>
-                  <!-- 开发模式提示 -->
-                  <n-text v-if="isDev" depth="3" style="font-size: 12px">
-                    {{ t('settings.updateDisabledInDev') }}
-                  </n-text>
-                </n-space>
-              </n-form-item>
-              <!-- 更新状态信息 -->
-              <n-form-item v-if="updateStatus" :label="t('settings.updateStatus')">
-                <n-space align="center" :size="8" style="width: 100%">
-                  <n-text :type="updateStatusType" style="font-size: 13px; flex: 1">
-                    {{ updateStatus }}
-                  </n-text>
-                  <!-- 下载并安装按钮 -->
-                  <n-button
-                    v-if="pendingUpdate"
-                    size="small"
-                    type="primary"
-                    :loading="downloadingUpdate"
-                    @click="onDownloadAndInstall"
-                  >
-                    {{ t('settings.downloadAndInstall') }}
-                  </n-button>
-                </n-space>
-              </n-form-item>
-              <!-- 下载进度条 -->
-              <n-form-item v-if="downloadingUpdate" :label="t('settings.downloadProgress')">
-                <n-progress
-                  type="line"
-                  :percentage="downloadProgress"
-                  :show-indicator="true"
-                  status="info"
-                  style="width: 100%"
-                />
-              </n-form-item>
-            </n-form>
-          </n-card>
-
           <!-- API 配置区域 -->
           <n-card :title="t('settings.apiConfig')" size="small">
             <n-form label-placement="left" label-width="100" :show-feedback="false">
@@ -181,6 +120,67 @@
                 <n-button size="small" @click="onRestoreDefaults">
                   {{ t('settings.restoreDefaults') }}
                 </n-button>
+              </n-form-item>
+            </n-form>
+          </n-card>
+
+          <!-- 更新设置区域 -->
+          <n-card :title="t('settings.updateConfig')" size="small">
+            <n-form label-placement="left" label-width="100" :show-feedback="false">
+              <!-- 当前版本 -->
+              <n-form-item :label="t('settings.currentVersion')">
+                <n-text style="font-size: 13px">{{ appVersion }}</n-text>
+              </n-form-item>
+              <!-- 自动更新开关 -->
+              <n-form-item :label="t('settings.autoUpdate')">
+                <n-switch
+                  v-model:value="formData.auto_update"
+                />
+              </n-form-item>
+              <!-- 手动检查更新 -->
+              <n-form-item :label="t('settings.checkUpdate')">
+                <n-space align="center" :size="8">
+                  <n-button
+                    size="small"
+                    :loading="checkingUpdate"
+                    :disabled="isDev"
+                    @click="onCheckUpdate"
+                  >
+                    {{ t('settings.checkUpdateBtn') }}
+                  </n-button>
+                  <!-- 开发模式提示 -->
+                  <n-text v-if="isDev" depth="3" style="font-size: 12px">
+                    {{ t('settings.updateDisabledInDev') }}
+                  </n-text>
+                </n-space>
+              </n-form-item>
+              <!-- 更新状态信息 -->
+              <n-form-item v-if="updateStatus" :label="t('settings.updateStatus')">
+                <n-space align="center" :size="8" style="width: 100%">
+                  <n-text :type="updateStatusType" style="font-size: 13px; flex: 1">
+                    {{ updateStatus }}
+                  </n-text>
+                  <!-- 下载并安装按钮 -->
+                  <n-button
+                    v-if="pendingUpdate"
+                    size="small"
+                    type="primary"
+                    :loading="downloadingUpdate"
+                    @click="onDownloadAndInstall"
+                  >
+                    {{ t('settings.downloadAndInstall') }}
+                  </n-button>
+                </n-space>
+              </n-form-item>
+              <!-- 下载进度条 -->
+              <n-form-item v-if="downloadingUpdate" :label="t('settings.downloadProgress')">
+                <n-progress
+                  type="line"
+                  :percentage="downloadProgress"
+                  :show-indicator="true"
+                  status="info"
+                  style="width: 100%"
+                />
               </n-form-item>
             </n-form>
           </n-card>
