@@ -31,6 +31,11 @@
 
           <!-- API 配置区域 -->
           <n-card :title="t('settings.apiConfig')" size="small">
+            <template #header-extra>
+              <n-button size="small" @click="onTestConnection" :loading="testing">
+                {{ t('settings.testConnection') }}
+              </n-button>
+            </template>
             <n-form label-placement="left" label-width="100" :show-feedback="false">
               <n-form-item :label="t('settings.apiBaseUrl')">
                 <n-input
@@ -47,6 +52,15 @@
                     :placeholder="hasApiKey ? '••••••••' : t('settings.apiKeyPlaceholder')"
                     style="flex: 1"
                   />
+                  <n-button
+                    v-if="formData.api_key.trim()"
+                    size="small"
+                    type="primary"
+                    @click="onSaveApiKey"
+                    :loading="savingKey"
+                  >
+                    {{ t('settings.saveApiKey') }}
+                  </n-button>
                   <n-button
                     v-if="hasApiKey"
                     size="small"
@@ -209,15 +223,6 @@
             </n-text>
           </n-card>
 
-          <!-- 操作按钮 -->
-          <n-space justify="center">
-            <n-button type="primary" @click="onSave" :loading="saving">
-              {{ t('settings.save') }}
-            </n-button>
-            <n-button @click="onTestConnection" :loading="testing">
-              {{ t('settings.testConnection') }}
-            </n-button>
-          </n-space>
         </n-space>
       </n-spin>
     </div>
@@ -225,7 +230,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, shallowRef, computed, onMounted } from 'vue'
+import { reactive, ref, shallowRef, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   darkTheme,
@@ -296,9 +301,9 @@ const formData = reactive({
 
 // 页面状态
 const loading = ref(false)
-const saving = ref(false)
 const testing = ref(false)
 const deleting = ref(false)
+const savingKey = ref(false)
 const configPath = ref('')
 const logDir = ref('')
 
@@ -420,9 +425,9 @@ async function onLanguageChange(value: string) {
   }
 }
 
-/** 保存配置 */
-async function onSave() {
-  saving.value = true
+/** 防抖自动保存配置（成功时不弹消息，仅在出错时提示） */
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+async function autoSave() {
   try {
     const newConfig: AppConfig = {
       api_base_url: formData.api_base_url.trim(),
@@ -438,22 +443,28 @@ async function onSave() {
       },
     }
 
-    // 保存配置到 TOML 文件（后端会自动更新快捷键、托盘菜单和广播语言变更事件）
     await configStore.updateConfig(newConfig)
-
-    // 如果用户输入了新的 API 密钥，保存到 keyring
-    if (formData.api_key.trim()) {
-      await configStore.setApiKey(formData.api_key.trim())
-      formData.api_key = ''
-    }
-
-    message.success(t('settings.configSaved'))
-    logger.info(TAG, '配置保存成功')
+    logger.info(TAG, '配置已自动保存')
   } catch (err) {
     message.error(`${t('settings.saveFailed')}: ${err}`)
-    logger.error(TAG, `配置保存失败: ${err}`)
+    logger.error(TAG, `自动保存配置失败: ${err}`)
+  }
+}
+
+/** 单独保存 API 密钥到系统密钥环 */
+async function onSaveApiKey() {
+  if (!formData.api_key.trim()) return
+  savingKey.value = true
+  try {
+    await configStore.setApiKey(formData.api_key.trim())
+    formData.api_key = ''
+    message.success(t('settings.apiKeySaved'))
+    logger.info(TAG, 'API 密钥已保存')
+  } catch (err) {
+    message.error(`${t('settings.saveFailed')}: ${err}`)
+    logger.error(TAG, `保存 API 密钥失败: ${err}`)
   } finally {
-    saving.value = false
+    savingKey.value = false
   }
 }
 
@@ -646,6 +657,31 @@ async function onDownloadAndInstall() {
   }
 }
 
+// 标记是否已完成初始加载，防止 populateForm 触发自动保存
+const initialized = ref(false)
+
+// 自动保存配置监听（排除 language 已有独立逻辑、api_key 由独立按钮处理）
+watch(
+  () => ({
+    api_base_url: formData.api_base_url,
+    model: formData.model,
+    target_language: formData.target_language,
+    ocr_language: formData.ocr_language,
+    auto_update: formData.auto_update,
+    shortcuts_capture: formData.shortcuts_capture,
+    shortcuts_pin_clipboard: formData.shortcuts_pin_clipboard,
+    shortcuts_text_translate: formData.shortcuts_text_translate,
+  }),
+  () => {
+    if (!initialized.value) return
+    if (autoSaveTimer) clearTimeout(autoSaveTimer)
+    autoSaveTimer = setTimeout(() => {
+      autoSave()
+    }, 500)
+  },
+  { deep: true }
+)
+
 // 页面加载时初始化配置数据
 onMounted(async () => {
   loading.value = true
@@ -672,6 +708,8 @@ onMounted(async () => {
 
     // 保存开机自启动状态
     autoStartEnabled.value = autoStart
+
+    initialized.value = true
 
     logger.info(TAG, '设置页面初始化完成')
   } catch (err) {

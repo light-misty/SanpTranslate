@@ -80,6 +80,8 @@ export default {
     apiKeyDeleted: 'API key deleted',
     deleteApiKeyFailed: 'Failed to delete API key',
     apiKeyStoredInKeyring: 'Key is securely stored in system keyring',
+    saveApiKey: 'Save Key',
+    apiKeySaved: 'API key saved',
     autoStart: 'Auto Start',
     autoStartEnabled: 'Auto start enabled',
     autoStartDisabled: 'Auto start disabled',

@@ -80,6 +80,8 @@ export default {
     apiKeyDeleted: 'API 密钥已删除',
     deleteApiKeyFailed: '删除 API 密钥失败',
     apiKeyStoredInKeyring: '密钥已安全保存在系统密钥环中',
+    saveApiKey: '保存密钥',
+    apiKeySaved: 'API 密钥已保存',
     autoStart: '开机自启动',
     autoStartEnabled: '已开启开机自启动',
     autoStartDisabled: '已关闭开机自启动',
