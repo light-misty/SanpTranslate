@@ -32,11 +32,9 @@ jobs:
           fi
           echo "version=$CARGO_VERSION" >> "$GITHUB_OUTPUT"
 
-  # 跨平台构建并发布（使用 tauri-action 自动生成 latest.json）
-  release:
+  # 跨平台构建（不发布到 Release，避免矩阵并发竞态）
+  build:
     needs: validate
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -95,31 +93,69 @@ jobs:
       - name: 安装前端依赖
         run: npm ci
 
-      # 使用 tauri-action 构建、生成更新产物并发布
+      # 使用 tauri-action 构建并生成更新产物（不创建 Release）
       - uses: tauri-apps/tauri-action@action-v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'SnapTranslate ${{ github.ref_name }}'
-          releaseBody: |
-            ## 下载安装
-
-            | 操作系统 | 下载文件 |
-            | -------- | -------- |
-            | Windows  | `SnapTranslate_*_x64-setup.exe` |
-            | macOS    | `SnapTranslate_*_x64.dmg` |
-            | Linux    | `SnapTranslate_*_amd64.AppImage` |
-
-            > 其他文件（`latest.json`、`.app.tar.gz`）为自动更新所需，无需手动下载。
-          releaseDraft: true
-          prerelease: false
-          # 优先使用 NSIS 安装包（项目使用自定义 NSIS 模板）
+          includeRelease: false
+          includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          # 自动生成 latest.json 供 updater 使用
-          uploadUpdaterJson: true
-          # 不上传 .sig 签名文件到 Release（签名已嵌入 latest.json，无需单独上传）
-          uploadUpdaterSignatures: false
           args: ${{ matrix.args }}
+
+      # 上传构建产物供后续发布使用
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.target }}
+          path: src-tauri/target/release/bundle/
+          if-no-files-found: error
+
+  # 创建 Draft Release 并上传所有平台的构建产物
+  publish:
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      # 需要源码中的 releaseBody 内容
+      - uses: actions/checkout@v4
+
+      - name: 获取版本号
+        id: version
+        shell: bash
+        run: echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: false
+
+      - name: 列出产物文件
+        shell: bash
+        run: find release-artifacts -type f | sort
+
+      - name: 创建 Draft Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "SnapTranslate ${{ steps.version.outputs.tag }}" \
+            --notes "构建中，请稍候..." \
+            --draft \
+            --repo "${{ github.repository }}"
+
+      - name: 上传产物到 Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find release-artifacts -type f | while read -r file; do
+            echo "上传: $file"
+            gh release upload "${{ steps.version.outputs.tag }}" "$file" \
+              --repo "${{ github.repository }}" --clobber
+          done
