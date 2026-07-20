@@ -32,7 +32,7 @@ jobs:
           fi
           echo "version=$CARGO_VERSION" >> "$GITHUB_OUTPUT"
 
-  # 跨平台构建（不发布到 Release，避免矩阵并发竞态）
+  # 跨平台构建
   build:
     needs: validate
     strategy:
@@ -55,27 +55,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node.js 环境
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      # Rust 工具链
       - name: 安装 Rust 工具链
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      # 缓存 Rust 依赖加速构建
       - name: 缓存 Rust 依赖
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
           key: ${{ matrix.target }}
 
-      # Linux 系统依赖
       - name: 安装 Linux 系统依赖
         if: matrix.platform == 'ubuntu-24.04'
         run: |
@@ -89,23 +85,17 @@ jobs:
             libpipewire-0.3-dev \
             libgbm-dev
 
-      # 安装前端依赖
       - name: 安装前端依赖
         run: npm ci
 
-      # 使用 tauri-action 构建并生成更新产物（不创建 Release）
-      - uses: tauri-apps/tauri-action@action-v0.6.2
+      - name: 构建 Tauri 应用
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          includeRelease: false
-          includeUpdaterJson: true
-          updaterJsonPreferNsis: true
-          args: ${{ matrix.args }}
+        run: |
+          npm run tauri build ${{ matrix.args }}
 
-      # 上传构建产物供后续发布使用
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
@@ -120,10 +110,9 @@ jobs:
       contents: write
     runs-on: ubuntu-24.04
     steps:
-      # 需要源码中的 releaseBody 内容
       - uses: actions/checkout@v4
 
-      - name: 获取版本号
+      - name: 设置版本号
         id: version
         shell: bash
         run: echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
@@ -136,7 +125,22 @@ jobs:
 
       - name: 列出产物文件
         shell: bash
-        run: find release-artifacts -type f | sort
+        run: |
+          echo "=== 所有产物 ==="
+          find release-artifacts -type f | sort
+          echo ""
+          echo "=== 目录结构 ==="
+          find release-artifacts -type d | sort
+
+      - name: 整理产物到统一目录
+        shell: bash
+        run: |
+          mkdir -p upload
+          find release-artifacts -type f | while read -r f; do
+            cp "$f" upload/
+          done
+          echo "=== 待上传文件 ==="
+          ls -lh upload/
 
       - name: 创建 Draft Release
         shell: bash
@@ -154,8 +158,98 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          find release-artifacts -type f | while read -r file; do
-            echo "上传: $file"
+          for file in upload/*; do
+            echo "上传: $file ($(du -h "$file" | cut -f1))"
             gh release upload "${{ steps.version.outputs.tag }}" "$file" \
               --repo "${{ github.repository }}" --clobber
           done
+          echo "=== 上传完成 ==="
+
+      - name: 生成 latest.json（更新用清单）
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          VERSION="${VERSION#v}"
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          REPO="${{ github.repository }}"
+          TAG="${{ steps.version.outputs.tag }}"
+
+          # 获取 release ID
+          RELEASE_ID=$(gh api repos/$REPO/releases --jq ".[] | select(.tag_name==\"$TAG\" and .draft) | .id")
+
+          # 获取已上传的 assets
+          gh api repos/$REPO/releases/$RELEASE_ID/assets --jq '.[].name' > /tmp/assets.txt
+          echo "已上传的 assets:"
+          cat /tmp/assets.txt
+
+          # 构建 platforms 对象
+          PLATFORMS="{"
+          SEP=""
+
+          # Windows
+          if grep -q "x64-setup.exe" /tmp/assets.txt; then
+            ASSET_NAME=$(grep "x64-setup.exe" /tmp/assets.txt | head -1)
+            SIG_NAME="${ASSET_NAME}.sig"
+            SIG_URL="https://github.com/$REPO/releases/download/$TAG/$SIG_NAME"
+            DL_URL="https://github.com/$REPO/releases/download/$TAG/$ASSET_NAME"
+            # 下载签名
+            curl -sL -o /tmp/windows.sig "$SIG_URL"
+            if [ -f /tmp/windows.sig ]; then
+              SIGNATURE=$(cat /tmp/windows.sig)
+              PLATFORMS="${PLATFORMS}${SEP}\"windows-x86_64\": {\"signature\": \"$SIGNATURE\", \"url\": \"$DL_URL\"}"
+              SEP=", "
+            fi
+          fi
+
+          # macOS
+          if grep -q "x64.dmg" /tmp/assets.txt; then
+            ASSET_NAME=$(grep "x64.dmg" /tmp/assets.txt | head -1)
+            SIG_NAME=$(grep "x64.app.tar.gz.sig" /tmp/assets.txt | head -1)
+            if [ -n "$SIG_NAME" ]; then
+              SIG_URL="https://github.com/$REPO/releases/download/$TAG/$SIG_NAME"
+              DL_URL="https://github.com/$REPO/releases/download/$TAG/$ASSET_NAME"
+              curl -sL -o /tmp/macos.sig "$SIG_URL"
+              if [ -f /tmp/macos.sig ]; then
+                SIGNATURE=$(cat /tmp/macos.sig)
+                PLATFORMS="${PLATFORMS}${SEP}\"darwin-x86_64\": {\"signature\": \"$SIGNATURE\", \"url\": \"$DL_URL\"}"
+                SEP=", "
+              fi
+            fi
+          fi
+
+          # Linux
+          if grep -q "amd64.AppImage" /tmp/assets.txt; then
+            ASSET_NAME=$(grep "amd64.AppImage" /tmp/assets.txt | head -1)
+            SIG_NAME="${ASSET_NAME}.sig"
+            SIG_URL="https://github.com/$REPO/releases/download/$TAG/$SIG_NAME"
+            DL_URL="https://github.com/$REPO/releases/download/$TAG/$ASSET_NAME"
+            curl -sL -o /tmp/linux.sig "$SIG_URL"
+            if [ -f /tmp/linux.sig ]; then
+              SIGNATURE=$(cat /tmp/linux.sig)
+              PLATFORMS="${PLATFORMS}${SEP}\"linux-x86_64\": {\"signature\": \"$SIGNATURE\", \"url\": \"$DL_URL\"}"
+              SEP=", "
+            fi
+          fi
+
+          PLATFORMS="${PLATFORMS}}"
+
+          # 生成 latest.json
+          cat > /tmp/latest.json << EOF
+          {
+            "version": "$VERSION",
+            "notes": "SnapTranslate $VERSION",
+            "pub_date": "$PUB_DATE",
+            "platforms": $PLATFORMS
+          }
+          EOF
+
+          # 美化输出
+          cat /tmp/latest.json | python3 -m json.tool > /tmp/latest_pretty.json 2>/dev/null || cp /tmp/latest.json /tmp/latest_pretty.json
+          echo "生成的 latest.json:"
+          cat /tmp/latest_pretty.json
+
+          # 上传 latest.json
+          gh release upload "$TAG" /tmp/latest_pretty.json \
+            --repo "$REPO" --clobber
