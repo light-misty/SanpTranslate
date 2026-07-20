@@ -1,4 +1,4 @@
-# SnapTranslate
+<h1 align="center">SnapTranslate</h1>
 
 <p align="center">
   <img src="src-tauri/icons/icon.png" width="128" alt="SnapTranslate Logo" />
