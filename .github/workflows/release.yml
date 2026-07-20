@@ -138,11 +138,32 @@ jobs:
         shell: bash
         run: |
           mkdir -p upload
-          find release-artifacts -type f | while read -r f; do
+          # 只复制发行包文件（排除 .app 目录内数百个内部文件）
+          find release-artifacts -type f \( \
+            -name "*.exe" -o \
+            -name "*.dmg" -o \
+            -name "*.AppImage" -o \
+            -name "*.tar.gz" -o \
+            -name "*.deb" -o \
+            -name "*.sig" \
+          \) | while read -r f; do
             cp "$f" upload/
           done
           echo "=== 待上传文件 ==="
           ls -lh upload/
+
+      - name: 清理旧 Draft Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          EXISTING_ID=$(gh api repos/${{ github.repository }}/releases \
+            --jq ".[] | select(.tag_name==\"$TAG\" and .draft) | .id" | head -1)
+          if [ -n "$EXISTING_ID" ]; then
+            echo "删除旧的 Draft Release (ID: $EXISTING_ID)"
+            gh api repos/${{ github.repository }}/releases/$EXISTING_ID -X DELETE
+          fi
 
       - name: 创建 Draft Release
         shell: bash
