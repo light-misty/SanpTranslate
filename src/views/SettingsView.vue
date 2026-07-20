@@ -37,10 +37,16 @@
               </n-button>
             </template>
             <n-form label-placement="left" label-width="100" :show-feedback="false">
+              <n-form-item :label="t('settings.apiProvider')">
+                <n-select
+                  v-model:value="formData.api_provider"
+                  :options="providerOptions"
+                />
+              </n-form-item>
               <n-form-item :label="t('settings.apiBaseUrl')">
                 <n-input
                   v-model:value="formData.api_base_url"
-                  placeholder="https://api.openai.com"
+                  :placeholder="providerPlaceholders.url"
                 />
               </n-form-item>
               <n-form-item :label="t('settings.apiKey')">
@@ -85,7 +91,7 @@
               <n-form-item :label="t('settings.model')">
                 <n-input
                   v-model:value="formData.model"
-                  placeholder="gpt-4o"
+                  :placeholder="providerPlaceholders.model"
                 />
               </n-form-item>
             </n-form>
@@ -287,6 +293,7 @@ const appVersion = __APP_VERSION__
 
 // 表单数据（扁平化结构，方便 v-model 双向绑定）
 const formData = reactive({
+  api_provider: 'openai',
   api_base_url: '',
   api_key: '',
   model: '',
@@ -355,6 +362,32 @@ const uiLanguageOptions = computed(() => [
   { label: t('settings.languageEnUS'), value: 'en-US' },
 ])
 
+// API Provider 选项列表
+const providerOptions = computed(() => [
+  { label: t('settings.providerOpenai'), value: 'openai' },
+  { label: t('settings.providerAnthropic'), value: 'anthropic' },
+  { label: t('settings.providerGemini'), value: 'gemini' },
+])
+
+// 根据当前 Provider 集中管理 URL 与模型名的占位符
+const providerPlaceholders = computed(() => {
+  const map: Record<string, { url: string; model: string }> = {
+    openai: {
+      url: t('settings.apiUrlPlaceholderOpenai'),
+      model: t('settings.modelPlaceholderOpenai'),
+    },
+    anthropic: {
+      url: t('settings.apiUrlPlaceholderAnthropic'),
+      model: t('settings.modelPlaceholderAnthropic'),
+    },
+    gemini: {
+      url: t('settings.apiUrlPlaceholderGemini'),
+      model: t('settings.modelPlaceholderGemini'),
+    },
+  }
+  return map[formData.api_provider] ?? map.openai
+})
+
 // 目标语言选项列表（使用 i18n 标签，支持语言切换）
 const languageOptions = computed(() => [
   { label: t('settings.langZhCN'), value: 'zh-CN' },
@@ -378,6 +411,7 @@ const ocrLanguageOptions = computed(() => [
 
 /** 将后端配置填充到表单 */
 function populateForm(config: AppConfig) {
+  formData.api_provider = config.api_provider || 'openai'
   formData.api_base_url = config.api_base_url
   formData.model = config.model
   formData.target_language = config.target_language
@@ -430,6 +464,7 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 async function autoSave() {
   try {
     const newConfig: AppConfig = {
+      api_provider: formData.api_provider,
       api_base_url: formData.api_base_url.trim(),
       model: formData.model.trim(),
       target_language: formData.target_language,
@@ -497,12 +532,13 @@ async function onTestConnection() {
 
   testing.value = true
   try {
-    // 传入当前界面语言，使后端返回对应语言的提示信息
+    // 传入当前界面语言和 API Provider，使后端返回对应语言的提示信息并使用对应提供商的连接测试逻辑
     const result = await testApiConnection(
       formData.api_base_url.trim(),
       apiKey,
       formData.model.trim(),
-      formData.language
+      formData.language,
+      formData.api_provider
     )
     message.success(result)
     logger.info(TAG, 'API 连接测试成功')
@@ -663,6 +699,7 @@ const initialized = ref(false)
 // 自动保存配置监听（排除 language 已有独立逻辑、api_key 由独立按钮处理）
 watch(
   () => ({
+    api_provider: formData.api_provider,
     api_base_url: formData.api_base_url,
     model: formData.model,
     target_language: formData.target_language,

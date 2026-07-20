@@ -32,6 +32,8 @@ impl Default for ShortcutConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppConfig {
+    /// API 提供商类型（"openai" / "anthropic" / "gemini"）
+    pub api_provider: String,
     /// API 基础地址
     pub api_base_url: String,
     /// AI 模型名称
@@ -51,6 +53,7 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         AppConfig {
+            api_provider: "openai".to_string(),
             api_base_url: String::new(),
             model: String::new(),
             target_language: "zh-CN".to_string(),
@@ -185,5 +188,34 @@ impl ConfigManager {
                 e
             ))),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 验证 AppConfig 默认值的 api_provider 为 "openai"
+    /// 保证旧版本配置在升级后默认走 OpenAI 兼容路径
+    #[test]
+    fn test_app_config_default_api_provider() {
+        let config = AppConfig::default();
+        assert_eq!(config.api_provider, "openai");
+    }
+
+    /// 验证缺失 api_provider 字段的旧配置 TOML 反序列化时回退到 "openai"
+    /// 即 #[serde(default)] 在字段缺失场景下生效，确保向后兼容
+    #[test]
+    fn test_app_config_deserialize_missing_api_provider() {
+        // 构造一段不含 api_provider 字段的 TOML（模拟旧版本配置文件）
+        let toml_str = r#"
+            api_base_url = "https://api.example.com"
+            model = "gpt-4o"
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).expect("反序列化应成功");
+        assert_eq!(config.api_provider, "openai");
+        // 顺便验证其他字段确实来自 TOML 而非默认值
+        assert_eq!(config.api_base_url, "https://api.example.com");
+        assert_eq!(config.model, "gpt-4o");
     }
 }

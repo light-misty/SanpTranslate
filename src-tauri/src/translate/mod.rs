@@ -1,8 +1,41 @@
 // 翻译模块
+// 支持 OpenAI 兼容 / Anthropic / Gemini 三种 API Provider 分发
+
+// 三个子模块分别实现对应 Provider 的文本 API 调用
+mod openai;
+// anthropic / gemini 子模块需对 crate 内可见，以暴露其默认 base_url 常量给 commands.rs 复用
+pub(crate) mod anthropic;
+pub(crate) mod gemini;
 
 use crate::error::AppError;
 use crate::ocr::OcrBlock;
 use serde::{Deserialize, Serialize};
+
+/// 根据 api_provider 字符串解析出标准化的 provider 标识
+/// 返回 "openai" / "anthropic" / "gemini"，未知值统一映射为 "openai"（向后兼容旧配置）
+pub(crate) fn resolve_provider(api_provider: &str) -> &'static str {
+    match api_provider {
+        "anthropic" => "anthropic",
+        "gemini" => "gemini",
+        _ => "openai",
+    }
+}
+
+/// Build system prompt based on whether OCR mode is active
+/// - OCR mode uses multi-paragraph translation prompt, requiring paragraph count to match
+/// - Text mode uses a general translation prompt
+pub(crate) fn build_system_prompt(is_ocr_mode: bool) -> &'static str {
+    if is_ocr_mode {
+        "You are a translation assistant. The user will send multiple text segments separated by blank lines. Please translate each segment individually, separating each translation result with a blank line. The number of segments must exactly match the original. Preserve the original line break structure. Do not merge, split, or add/remove segments."
+    } else {
+        "You are a translation assistant. Please translate the user's text into the specified language, preserving the original formatting and line breaks."
+    }
+}
+
+/// Build user prompt (unified format: target language + original text)
+pub(crate) fn build_user_prompt(text: &str, target_language: &str) -> String {
+    format!("Translate the following text into {}:\n{}", target_language, text)
+}
 
 /// 翻译结果块
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +81,7 @@ pub async fn translate_with_ocr_blocks(
     api_key: &str,
     model: &str,
     target_language: &str,
+    api_provider: &str,
 ) -> Result<TranslateResult, AppError> {
     if ocr_blocks.is_empty() {
         log::info!("[TRANSLATE] OCR块为空，返回空结果");
@@ -63,8 +97,8 @@ pub async fn translate_with_ocr_blocks(
 
     log::debug!("[TRANSLATE] 使用预提取OCR文本（{}段落）: {}", ocr_blocks.len(), all_text);
 
-    // 调用文本模型翻译，要求按段落返回
-    let translated_text = call_text_api(api_base_url, api_key, model, &all_text, target_language, true).await?;
+    // 调用文本模型翻译，要求按段落返回（透传 api_provider 给 call_text_api）
+    let translated_text = call_text_api(api_base_url, api_key, model, &all_text, target_language, true, api_provider).await?;
 
     // 将翻译结果按空行(\n\n)拆分为段落，与OCR块一一对应
     let translated_paragraphs: Vec<&str> = translated_text
@@ -108,8 +142,9 @@ pub async fn translate_with_ocr_blocks(
     Ok(TranslateResult { blocks: translated_blocks, from_cache: false })
 }
 
-/// 调用文本模型API（OpenAI兼容格式）
-/// is_ocr_mode 为 true 时使用 OCR 多段落翻译提示词，为 false 时使用纯文本翻译提示词
+/// 调用文本模型API（按 api_provider 分发到具体 Provider 实现）
+/// - api_provider: "openai"（默认）/ "anthropic" / "gemini"，未知值默认走 OpenAI 兼容（向后兼容）
+/// - is_ocr_mode 为 true 时使用 OCR 多段落翻译提示词，为 false 时使用纯文本翻译提示词
 pub async fn call_text_api(
     api_base_url: &str,
     api_key: &str,
@@ -117,56 +152,52 @@ pub async fn call_text_api(
     text: &str,
     target_language: &str,
     is_ocr_mode: bool,
+    api_provider: &str,
 ) -> Result<String, AppError> {
-    let url = format!("{}/chat/completions", api_base_url.trim_end_matches('/'));
+    // 根据 api_provider 解析出标准化 provider 标识后分发到对应的 API 实现
+    let provider = resolve_provider(api_provider);
+    match provider {
+        "anthropic" => crate::translate::anthropic::call_anthropic_text_api(
+            api_base_url, api_key, model, text, target_language, is_ocr_mode,
+        )
+        .await,
+        "gemini" => crate::translate::gemini::call_gemini_text_api(
+            api_base_url, api_key, model, text, target_language, is_ocr_mode,
+        )
+        .await,
+        _ => crate::translate::openai::call_openai_text_api(
+            api_base_url, api_key, model, text, target_language, is_ocr_mode,
+        )
+        .await,
+    }
+}
 
-    // 根据翻译模式选择不同的系统提示词
-    let system_prompt = if is_ocr_mode {
-        "你是翻译助手。用户会发送多段文本，段落之间用空行分隔。请逐段翻译，每段翻译结果单独用空行分隔，段落数量必须与原文完全一致。保持原文中的换行结构不变。不要合并、拆分或增减段落。"
-    } else {
-        "你是翻译助手。请将用户发送的文本翻译为指定语言，保持原文的格式和换行。"
-    };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // 构建文本模型请求体
-    let request_body = serde_json::json!({
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": format!("将以下文本翻译为{}：\n{}", target_language, text)
-            }
-        ]
-    });
-
-    let client = reqwest::Client::new();
-    let response = client
-        .post(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&request_body)
-        .timeout(std::time::Duration::from_secs(30))
-        .send()
-        .await?;
-
-    // 检查HTTP状态码
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(AppError::TranslateError(format!(
-            "文本模型API请求失败，状态码: {}，响应: {}",
-            status, body
-        )));
+    /// 验证 resolve_provider 对 "openai" 的解析
+    #[test]
+    fn test_resolve_provider_openai() {
+        assert_eq!(resolve_provider("openai"), "openai");
     }
 
-    let response_json: serde_json::Value = response.json().await?;
+    /// 验证 resolve_provider 对 "anthropic" 的解析
+    #[test]
+    fn test_resolve_provider_anthropic() {
+        assert_eq!(resolve_provider("anthropic"), "anthropic");
+    }
 
-    // 提取响应中的文本内容
-    response_json["choices"][0]["message"]["content"]
-        .as_str()
-        .map(|s| s.to_string())
-        .ok_or_else(|| AppError::TranslateError("文本模型响应中缺少content字段".to_string()))
+    /// 验证 resolve_provider 对 "gemini" 的解析
+    #[test]
+    fn test_resolve_provider_gemini() {
+        assert_eq!(resolve_provider("gemini"), "gemini");
+    }
+
+    /// 验证 resolve_provider 对未知值和空字符串回退到 "openai"（向后兼容）
+    #[test]
+    fn test_resolve_provider_unknown_falls_back_to_openai() {
+        assert_eq!(resolve_provider("unknown"), "openai");
+        assert_eq!(resolve_provider(""), "openai");
+    }
 }

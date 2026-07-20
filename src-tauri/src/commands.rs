@@ -287,6 +287,7 @@ pub async fn translate_image(
         &api_key,
         &config.model,
         &target_language,
+        &config.api_provider, // 透传 API 提供商（openai/anthropic/gemini）
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -402,25 +403,87 @@ pub async fn test_api_connection(
     api_key: String,
     model: String,
     language: Option<String>,
-    app: tauri::AppHandle,
+    api_provider: Option<String>,
 ) -> Result<String, String> {
-    let _ = app; // 避免 unused 警告
+    // 解析 API 提供商，默认为 openai（复用 translate 模块的标准化解析逻辑）
+    let provider = crate::translate::resolve_provider(api_provider.as_deref().unwrap_or("openai"));
 
     // 根据界面语言选择提示文本
     let effective_lang = crate::config::resolve_language(language.as_deref().unwrap_or("auto"));
     let is_zh = effective_lang == "zh-CN";
 
-    let url = format!("{}/chat/completions", api_base_url.trim_end_matches('/'));
+    // 按 provider 构造 (URL, 请求体, 额外请求头)
+    // extra_headers: 用于承载 provider 特有的认证/版本头
+    let (url, request_body, extra_headers): (String, serde_json::Value, Vec<(&str, String)>) =
+        match provider {
+            // Anthropic：使用 x-api-key + anthropic-version 头，路径为 /v1/messages
+            "anthropic" => {
+                // base_url 为空时使用官方地址（复用 translate::anthropic 模块的默认常量）
+                let base = if api_base_url.trim().is_empty() {
+                    crate::translate::anthropic::ANTHROPIC_DEFAULT_BASE_URL.to_string()
+                } else {
+                    api_base_url.clone()
+                };
+                let url = format!("{}/v1/messages", base.trim_end_matches('/'));
+                let body = serde_json::json!({
+                    "model": model,
+                    "max_tokens": 5,
+                    "messages": [{"role": "user", "content": "Hello"}],
+                    // 显式关闭思考链
+                    "thinking": {
+                        "type": "disabled"
+                    }
+                });
+                let headers: Vec<(&str, String)> = vec![
+                    ("x-api-key", api_key.clone()),
+                    ("anthropic-version", "2023-06-01".to_string()),
+                ];
+                (url, body, headers)
+            }
+            // Gemini：使用 x-goog-api-key，路径为 /v1beta/models/{model}:generateContent
+            "gemini" => {
+                // base_url 为空时使用官方地址（复用 translate::gemini 模块的默认常量）
+                let base = if api_base_url.trim().is_empty() {
+                    crate::translate::gemini::GEMINI_DEFAULT_BASE_URL.to_string()
+                } else {
+                    api_base_url.clone()
+                };
+                let url = format!(
+                    "{}/v1beta/models/{}:generateContent",
+                    base.trim_end_matches('/'),
+                    model
+                );
+                // thinkingConfig.thinkingBudget=0：显式关闭思考链，避免 Gemini 2.5+ 默认启用 thinking 导致额外延迟和 token 消耗
+                let body = serde_json::json!({
+                    "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
+                    "generationConfig": {
+                        "maxOutputTokens": 5,
+                        "thinkingConfig": {
+                            "thinkingBudget": 0
+                        }
+                    }
+                });
+                let headers: Vec<(&str, String)> = vec![
+                    ("x-goog-api-key", api_key.clone()),
+                ];
+                (url, body, headers)
+            }
+            // 默认走 OpenAI 兼容分支（含未知 provider）
+            _ => {
+                let url = format!("{}/chat/completions", api_base_url.trim_end_matches('/'));
+                let body = serde_json::json!({
+                    "model": model,
+                    "messages": [{"role": "user", "content": "Hello"}],
+                    "max_tokens": 5
+                });
+                let headers: Vec<(&str, String)> = vec![
+                    ("Authorization", format!("Bearer {}", api_key)),
+                ];
+                (url, body, headers)
+            }
+        };
 
-    let request_body = serde_json::json!({
-        "model": model,
-        "messages": [{
-            "role": "user",
-            "content": "Hello"
-        }],
-        "max_tokens": 5
-    });
-
+    // HTTP 客户端：15s 总超时、10s 连接超时
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .connect_timeout(std::time::Duration::from_secs(10))
@@ -432,11 +495,17 @@ pub async fn test_api_connection(
                 format!("Failed to create HTTP client: {}", e)
             }
         })?;
-    let response = client
+
+    // 统一构造 POST 请求：Content-Type 与 provider 特有的请求头
+    let mut request = client
         .post(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .json(&request_body)
+        .json(&request_body);
+    for (key, value) in &extra_headers {
+        request = request.header(*key, value);
+    }
+
+    let response = request
         .send()
         .await
         .map_err(|e| {
@@ -466,6 +535,7 @@ pub async fn test_api_connection(
     } else {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
+        // 解析错误响应：优先提取 json["error"]["message"]（OpenAI/Anthropic 通用），Gemini 的错误结构不同时回退为原文
         let error_msg = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
             json["error"]["message"]
                 .as_str()
@@ -650,6 +720,7 @@ pub async fn translate_text(
         &text,
         &target_language,
         false,
+        &config.api_provider, // 透传 API 提供商（openai/anthropic/gemini）
     )
     .await
     .map_err(|e| e.to_string())?;
