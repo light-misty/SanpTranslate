@@ -3,6 +3,8 @@ import { enable as autostartEnable, disable as autostartDisable, isEnabled as au
 
 /** 应用配置，与后端 Rust AppConfig 结构体保持一致 */
 export interface AppConfig {
+  /** API 提供商类型（"openai" / "anthropic" / "gemini"） */
+  api_provider: string
   /** AI API 基础地址 */
   api_base_url: string
   /** AI 模型名称 */
@@ -219,9 +221,10 @@ export async function testApiConnection(
   apiBaseUrl: string,
   apiKey: string,
   model: string,
-  language?: string
+  language?: string,
+  apiProvider?: string
 ): Promise<string> {
-  return invoke<string>('test_api_connection', { apiBaseUrl, apiKey, model, language })
+  return invoke<string>('test_api_connection', { apiBaseUrl, apiKey, model, language, apiProvider })
 }
 
 /** 获取历史记录列表 */
