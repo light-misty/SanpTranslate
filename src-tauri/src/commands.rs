@@ -404,12 +404,9 @@ pub async fn test_api_connection(
     model: String,
     language: Option<String>,
     api_provider: Option<String>,
-    app: tauri::AppHandle,
 ) -> Result<String, String> {
-    let _ = app; // 避免 unused 警告
-
-    // 解析 API 提供商，默认为 openai
-    let provider = api_provider.unwrap_or_else(|| "openai".to_string());
+    // 解析 API 提供商，默认为 openai（复用 translate 模块的标准化解析逻辑）
+    let provider = crate::translate::resolve_provider(api_provider.as_deref().unwrap_or("openai"));
 
     // 根据界面语言选择提示文本
     let effective_lang = crate::config::resolve_language(language.as_deref().unwrap_or("auto"));
@@ -418,12 +415,12 @@ pub async fn test_api_connection(
     // 按 provider 构造 (URL, 请求体, 额外请求头)
     // extra_headers: 用于承载 provider 特有的认证/版本头
     let (url, request_body, extra_headers): (String, serde_json::Value, Vec<(&str, String)>) =
-        match provider.as_str() {
+        match provider {
             // Anthropic：使用 x-api-key + anthropic-version 头，路径为 /v1/messages
             "anthropic" => {
-                // base_url 为空时使用官方地址
+                // base_url 为空时使用官方地址（复用 translate::anthropic 模块的默认常量）
                 let base = if api_base_url.trim().is_empty() {
-                    "https://api.anthropic.com".to_string()
+                    crate::translate::anthropic::ANTHROPIC_DEFAULT_BASE_URL.to_string()
                 } else {
                     api_base_url.clone()
                 };
@@ -445,8 +442,9 @@ pub async fn test_api_connection(
             }
             // Gemini：使用 x-goog-api-key，路径为 /v1beta/models/{model}:generateContent
             "gemini" => {
+                // base_url 为空时使用官方地址（复用 translate::gemini 模块的默认常量）
                 let base = if api_base_url.trim().is_empty() {
-                    "https://generativelanguage.googleapis.com".to_string()
+                    crate::translate::gemini::GEMINI_DEFAULT_BASE_URL.to_string()
                 } else {
                     api_base_url.clone()
                 };

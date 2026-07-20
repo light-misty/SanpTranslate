@@ -1,5 +1,4 @@
 // OpenAI 兼容格式 API 调用模块
-// 从原 translate/mod.rs 中的 call_text_api 迁移而来，保持逻辑完全一致
 
 use crate::error::AppError;
 
@@ -12,12 +11,9 @@ pub(super) fn build_request_body(
     is_ocr_mode: bool,
     model: &str,
 ) -> serde_json::Value {
-    // 根据翻译模式选择不同的系统提示词
-    let system_prompt = if is_ocr_mode {
-        "你是翻译助手。用户会发送多段文本，段落之间用空行分隔。请逐段翻译，每段翻译结果单独用空行分隔，段落数量必须与原文完全一致。保持原文中的换行结构不变。不要合并、拆分或增减段落。"
-    } else {
-        "你是翻译助手。请将用户发送的文本翻译为指定语言，保持原文的格式和换行。"
-    };
+    // 复用 translate 模块的公共函数构建系统提示词与用户提示词
+    let system_prompt = crate::translate::build_system_prompt(is_ocr_mode);
+    let user_content = crate::translate::build_user_prompt(text, target_language);
 
     // 构建 OpenAI chat/completions 请求体（system + user 两条 message）
     serde_json::json!({
@@ -29,7 +25,7 @@ pub(super) fn build_request_body(
             },
             {
                 "role": "user",
-                "content": format!("将以下文本翻译为{}：\n{}", target_language, text)
+                "content": user_content
             }
         ]
     })

@@ -46,7 +46,7 @@
               <n-form-item :label="t('settings.apiBaseUrl')">
                 <n-input
                   v-model:value="formData.api_base_url"
-                  :placeholder="apiUrlPlaceholder"
+                  :placeholder="providerPlaceholders.url"
                 />
               </n-form-item>
               <n-form-item :label="t('settings.apiKey')">
@@ -91,7 +91,7 @@
               <n-form-item :label="t('settings.model')">
                 <n-input
                   v-model:value="formData.model"
-                  :placeholder="modelPlaceholder"
+                  :placeholder="providerPlaceholders.model"
                 />
               </n-form-item>
             </n-form>
@@ -369,22 +369,23 @@ const providerOptions = computed(() => [
   { label: t('settings.providerGemini'), value: 'gemini' },
 ])
 
-// 根据当前 Provider 切换 API 地址占位符
-const apiUrlPlaceholder = computed(() => {
-  switch (formData.api_provider) {
-    case 'anthropic': return t('settings.apiUrlPlaceholderAnthropic')
-    case 'gemini': return t('settings.apiUrlPlaceholderGemini')
-    default: return t('settings.apiUrlPlaceholderOpenai')
+// 根据当前 Provider 集中管理 URL 与模型名的占位符
+const providerPlaceholders = computed(() => {
+  const map: Record<string, { url: string; model: string }> = {
+    openai: {
+      url: t('settings.apiUrlPlaceholderOpenai'),
+      model: t('settings.modelPlaceholderOpenai'),
+    },
+    anthropic: {
+      url: t('settings.apiUrlPlaceholderAnthropic'),
+      model: t('settings.modelPlaceholderAnthropic'),
+    },
+    gemini: {
+      url: t('settings.apiUrlPlaceholderGemini'),
+      model: t('settings.modelPlaceholderGemini'),
+    },
   }
-})
-
-// 根据当前 Provider 切换模型名占位符
-const modelPlaceholder = computed(() => {
-  switch (formData.api_provider) {
-    case 'anthropic': return t('settings.modelPlaceholderAnthropic')
-    case 'gemini': return t('settings.modelPlaceholderGemini')
-    default: return t('settings.modelPlaceholderOpenai')
-  }
+  return map[formData.api_provider] ?? map.openai
 })
 
 // 目标语言选项列表（使用 i18n 标签，支持语言切换）

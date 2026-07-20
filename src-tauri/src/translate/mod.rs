@@ -3,8 +3,9 @@
 
 // 三个子模块分别实现对应 Provider 的文本 API 调用
 mod openai;
-mod anthropic;
-mod gemini;
+// anthropic / gemini 子模块需对 crate 内可见，以暴露其默认 base_url 常量给 commands.rs 复用
+pub(crate) mod anthropic;
+pub(crate) mod gemini;
 
 use crate::error::AppError;
 use crate::ocr::OcrBlock;
@@ -12,12 +13,30 @@ use serde::{Deserialize, Serialize};
 
 /// 根据 api_provider 字符串解析出标准化的 provider 标识
 /// 返回 "openai" / "anthropic" / "gemini"，未知值统一映射为 "openai"（向后兼容旧配置）
-pub(super) fn resolve_provider(api_provider: &str) -> &'static str {
+pub(crate) fn resolve_provider(api_provider: &str) -> &'static str {
     match api_provider {
         "anthropic" => "anthropic",
         "gemini" => "gemini",
         _ => "openai",
     }
+}
+
+/// 根据是否为 OCR 模式构建系统提示词
+/// - OCR 模式使用多段落翻译提示词，要求保持段落数量与原文一致
+/// - 纯文本模式使用通用翻译提示词
+pub(crate) fn build_system_prompt(is_ocr_mode: bool) -> &'static str {
+    if is_ocr_mode {
+        // OCR 模式：多段落翻译提示词
+        "你是翻译助手。用户会发送多段文本，段落之间用空行分隔。请逐段翻译，每段翻译结果单独用空行分隔，段落数量必须与原文完全一致。保持原文中的换行结构不变。不要合并、拆分或增减段落。"
+    } else {
+        // 纯文本翻译模式
+        "你是翻译助手。请将用户发送的文本翻译为指定语言，保持原文的格式和换行。"
+    }
+}
+
+/// 构建用户提示词（统一格式：目标语言 + 原文）
+pub(crate) fn build_user_prompt(text: &str, target_language: &str) -> String {
+    format!("将以下文本翻译为{}：\n{}", target_language, text)
 }
 
 /// 翻译结果块
