@@ -264,6 +264,14 @@ Function PageReinstall
   ; of this function because we need to populate some variables
   ; related to current installed version if detected and whether
   ; we are downgrading or not.
+
+  ; 非 Wix 模式下直接跳过 reinstall 页面，由 NSIS 文件覆盖机制完成升级安装
+  ; 不再要求用户先卸载旧版本，提升升级体验
+  ; Wix 模式仍保留原有对话框流程（Wix 与 NSIS 安装机制不同，需先卸载 Wix 旧版本）
+  ${If} $WixMode <> 1
+    Abort
+  ${EndIf}
+
   ${If} $PassiveMode = 1
     Call PageLeaveReinstall
   ${Else}
