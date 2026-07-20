@@ -199,80 +199,56 @@ jobs:
           REPO="${{ github.repository }}"
           TAG="${{ steps.version.outputs.tag }}"
 
-          # 获取 release ID
-          RELEASE_ID=$(gh api repos/$REPO/releases --jq ".[] | select(.tag_name==\"$TAG\" and .draft) | .id")
+          cd upload
 
-          # 获取已上传的 assets
-          gh api repos/$REPO/releases/$RELEASE_ID/assets --jq '.[].name' > /tmp/assets.txt
-          echo "已上传的 assets:"
-          cat /tmp/assets.txt
+          # 自动检测各平台发行文件（避免硬编码版本号）
+          WIN_EXE=$(find . -maxdepth 1 -name "*setup.exe" -type f | head -1 | sed 's|^\./||' || true)
+          MAC_DMG=$(find . -maxdepth 1 -name "*.dmg" -type f | head -1 | sed 's|^\./||' || true)
+          MAC_TGZ=$(find . -maxdepth 1 -name "*.app.tar.gz" -type f | head -1 | sed 's|^\./||' || true)
+          LINUX_APPIMAGE=$(find . -maxdepth 1 -name "*.AppImage" -type f | head -1 | sed 's|^\./||' || true)
 
-          # 构建 platforms 对象
-          PLATFORMS="{"
-          SEP=""
+          echo "检测到: WIN=$WIN_EXE MAC_DMG=$MAC_DMG MAC_TGZ=$MAC_TGZ LINUX=$LINUX_APPIMAGE"
 
-          # Windows
-          if grep -q "x64-setup.exe" /tmp/assets.txt; then
-            ASSET_NAME=$(grep "x64-setup.exe" /tmp/assets.txt | head -1)
-            SIG_NAME="${ASSET_NAME}.sig"
-            SIG_URL="https://github.com/$REPO/releases/download/$TAG/$SIG_NAME"
-            DL_URL="https://github.com/$REPO/releases/download/$TAG/$ASSET_NAME"
-            # 下载签名
-            curl -sL -o /tmp/windows.sig "$SIG_URL"
-            if [ -f /tmp/windows.sig ]; then
-              SIGNATURE=$(cat /tmp/windows.sig)
-              PLATFORMS="${PLATFORMS}${SEP}\"windows-x86_64\": {\"signature\": \"$SIGNATURE\", \"url\": \"$DL_URL\"}"
-              SEP=", "
-            fi
-          fi
+          # 从本地读取签名文件（无需 curl 下载）
+          WIN_SIG=""; MAC_SIG=""; LINUX_SIG=""
+          [ -n "$WIN_EXE" ] && [ -f "${WIN_EXE}.sig" ] && WIN_SIG=$(cat "${WIN_EXE}.sig")
+          [ -n "$MAC_TGZ" ] && [ -f "${MAC_TGZ}.sig" ] && MAC_SIG=$(cat "${MAC_TGZ}.sig")
+          [ -n "$LINUX_APPIMAGE" ] && [ -f "${LINUX_APPIMAGE}.sig" ] && LINUX_SIG=$(cat "${LINUX_APPIMAGE}.sig")
 
-          # macOS
-          if grep -q "x64.dmg" /tmp/assets.txt; then
-            ASSET_NAME=$(grep "x64.dmg" /tmp/assets.txt | head -1)
-            SIG_NAME=$(grep "x64.app.tar.gz.sig" /tmp/assets.txt | head -1)
-            if [ -n "$SIG_NAME" ]; then
-              SIG_URL="https://github.com/$REPO/releases/download/$TAG/$SIG_NAME"
-              DL_URL="https://github.com/$REPO/releases/download/$TAG/$ASSET_NAME"
-              curl -sL -o /tmp/macos.sig "$SIG_URL"
-              if [ -f /tmp/macos.sig ]; then
-                SIGNATURE=$(cat /tmp/macos.sig)
-                PLATFORMS="${PLATFORMS}${SEP}\"darwin-x86_64\": {\"signature\": \"$SIGNATURE\", \"url\": \"$DL_URL\"}"
-                SEP=", "
-              fi
-            fi
-          fi
+          # 使用 jq 构建 JSON（避免字符串拼接和 heredoc 安全隐患）
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "SnapTranslate $VERSION" \
+            --arg pub_date "$PUB_DATE" \
+            --arg win_url "https://github.com/$REPO/releases/download/$TAG/$WIN_EXE" \
+            --arg win_sig "$WIN_SIG" \
+            --arg mac_url "https://github.com/$REPO/releases/download/$TAG/$MAC_DMG" \
+            --arg mac_sig "$MAC_SIG" \
+            --arg linux_url "https://github.com/$REPO/releases/download/$TAG/$LINUX_APPIMAGE" \
+            --arg linux_sig "$LINUX_SIG" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": {
+                  signature: $win_sig,
+                  url: $win_url
+                },
+                "darwin-x86_64": {
+                  signature: $mac_sig,
+                  url: $mac_url
+                },
+                "linux-x86_64": {
+                  signature: $linux_sig,
+                  url: $linux_url
+                }
+              }
+            }' > /tmp/latest.json
 
-          # Linux
-          if grep -q "amd64.AppImage" /tmp/assets.txt; then
-            ASSET_NAME=$(grep "amd64.AppImage" /tmp/assets.txt | head -1)
-            SIG_NAME="${ASSET_NAME}.sig"
-            SIG_URL="https://github.com/$REPO/releases/download/$TAG/$SIG_NAME"
-            DL_URL="https://github.com/$REPO/releases/download/$TAG/$ASSET_NAME"
-            curl -sL -o /tmp/linux.sig "$SIG_URL"
-            if [ -f /tmp/linux.sig ]; then
-              SIGNATURE=$(cat /tmp/linux.sig)
-              PLATFORMS="${PLATFORMS}${SEP}\"linux-x86_64\": {\"signature\": \"$SIGNATURE\", \"url\": \"$DL_URL\"}"
-              SEP=", "
-            fi
-          fi
-
-          PLATFORMS="${PLATFORMS}}"
-
-          # 生成 latest.json
-          cat > /tmp/latest.json << EOF
-          {
-            "version": "$VERSION",
-            "notes": "SnapTranslate $VERSION",
-            "pub_date": "$PUB_DATE",
-            "platforms": $PLATFORMS
-          }
-          EOF
-
-          # 美化输出
-          cat /tmp/latest.json | python3 -m json.tool > /tmp/latest_pretty.json 2>/dev/null || cp /tmp/latest.json /tmp/latest_pretty.json
           echo "生成的 latest.json:"
-          cat /tmp/latest_pretty.json
+          cat /tmp/latest.json
 
           # 上传 latest.json
-          gh release upload "$TAG" /tmp/latest_pretty.json \
+          gh release upload "$TAG" /tmp/latest.json \
             --repo "$REPO" --clobber
