@@ -192,8 +192,8 @@ impl TranslateService {
 3. 构造编号列表格式的用户消息：
    "1. {block_1.text}\n2. {block_2.text}\n..."
 4. 构造系统消息：
-   "你是一个翻译助手。请将以下编号文本翻译为{target_lang}。
-    严格保持编号格式，每行一条译文。仅返回译文，不要添加解释。"
+   "You are a translation assistant. Please translate the following numbered text into {target_lang}.
+    Strictly maintain the numbering format, one translation per line. Return only the translation without explanation."
 5. 构造 OpenAI Chat Completions 请求体
 6. 发送 POST 请求到 {api_base_url}/chat/completions
 7. 设置超时为 30 秒

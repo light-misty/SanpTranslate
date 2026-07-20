@@ -155,11 +155,11 @@ mod tests {
         assert!(user_text.contains("Hello"));
         assert!(user_text.contains("zh-CN"));
 
-        // 验证 systemInstruction.parts[0].text 存在且包含"翻译助手"
+        // Verify systemInstruction.parts[0].text exists and contains "translation assistant"
         let system_text = body["systemInstruction"]["parts"][0]["text"]
             .as_str()
-            .expect("systemInstruction.parts[0].text 应为字符串");
-        assert!(system_text.contains("翻译助手"));
+            .expect("systemInstruction.parts[0].text should be a string");
+        assert!(system_text.contains("translation assistant"));
 
         // 验证 generationConfig.maxOutputTokens 固定为 4096
         assert_eq!(body["generationConfig"]["maxOutputTokens"].as_i64(), Some(4096));

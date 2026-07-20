@@ -145,9 +145,9 @@ mod tests {
         // 验证 max_tokens 固定为 4096
         assert_eq!(body["max_tokens"].as_i64(), Some(4096));
 
-        // 验证 system 字段存在且为字符串
-        let system = body["system"].as_str().expect("system 应为字符串");
-        assert!(system.contains("翻译助手"));
+        // Verify system field exists and is a string
+        let system = body["system"].as_str().expect("system should be a string");
+        assert!(system.contains("translation assistant"));
 
         // 验证 messages 数组长度为 1，role=user
         let messages = body["messages"].as_array().expect("messages 应为数组");

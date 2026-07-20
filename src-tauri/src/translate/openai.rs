@@ -101,10 +101,10 @@ mod tests {
         let messages = body["messages"].as_array().expect("messages 应为数组");
         assert_eq!(messages.len(), 2);
 
-        // 第一条 role=system，内容包含"翻译助手"
+        // First message role=system, content should contain "translation assistant"
         assert_eq!(messages[0]["role"].as_str(), Some("system"));
-        let system_content = messages[0]["content"].as_str().expect("system content 应为字符串");
-        assert!(system_content.contains("翻译助手"));
+        let system_content = messages[0]["content"].as_str().expect("system content should be a string");
+        assert!(system_content.contains("translation assistant"));
 
         // 第二条 role=user，内容包含目标语言和原文
         assert_eq!(messages[1]["role"].as_str(), Some("user"));
@@ -122,8 +122,8 @@ mod tests {
         let messages = body["messages"].as_array().expect("messages 应为数组");
         let system_content = messages[0]["content"].as_str().expect("system content 应为字符串");
 
-        // 纯文本模式下 system 提示词应包含"翻译为指定语言"
-        assert!(system_content.contains("翻译为指定语言"));
+        // In text mode, system prompt should contain "specified language"
+        assert!(system_content.contains("specified language"));
     }
 
     /// 验证成功响应可正确解析出译文

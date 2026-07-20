@@ -381,7 +381,7 @@ pin_clipboard = "Ctrl+Alt+P"
   "messages": [
     {
       "role": "system",
-      "content": "你是一个翻译助手。请将以下文本翻译为{target_language}。按原文顺序返回每段译文，用编号分隔。"
+      "content": "You are a translation assistant. Please translate the following text into {target_language}. Return each paragraph in the original order, separated by numbers."
     },
     {
       "role": "user",

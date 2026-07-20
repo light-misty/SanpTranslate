@@ -21,22 +21,20 @@ pub(crate) fn resolve_provider(api_provider: &str) -> &'static str {
     }
 }
 
-/// 根据是否为 OCR 模式构建系统提示词
-/// - OCR 模式使用多段落翻译提示词，要求保持段落数量与原文一致
-/// - 纯文本模式使用通用翻译提示词
+/// Build system prompt based on whether OCR mode is active
+/// - OCR mode uses multi-paragraph translation prompt, requiring paragraph count to match
+/// - Text mode uses a general translation prompt
 pub(crate) fn build_system_prompt(is_ocr_mode: bool) -> &'static str {
     if is_ocr_mode {
-        // OCR 模式：多段落翻译提示词
-        "你是翻译助手。用户会发送多段文本，段落之间用空行分隔。请逐段翻译，每段翻译结果单独用空行分隔，段落数量必须与原文完全一致。保持原文中的换行结构不变。不要合并、拆分或增减段落。"
+        "You are a translation assistant. The user will send multiple text segments separated by blank lines. Please translate each segment individually, separating each translation result with a blank line. The number of segments must exactly match the original. Preserve the original line break structure. Do not merge, split, or add/remove segments."
     } else {
-        // 纯文本翻译模式
-        "你是翻译助手。请将用户发送的文本翻译为指定语言，保持原文的格式和换行。"
+        "You are a translation assistant. Please translate the user's text into the specified language, preserving the original formatting and line breaks."
     }
 }
 
-/// 构建用户提示词（统一格式：目标语言 + 原文）
+/// Build user prompt (unified format: target language + original text)
 pub(crate) fn build_user_prompt(text: &str, target_language: &str) -> String {
-    format!("将以下文本翻译为{}：\n{}", target_language, text)
+    format!("Translate the following text into {}:\n{}", target_language, text)
 }
 
 /// 翻译结果块
