@@ -113,7 +113,8 @@ pub fn run() {
             commands::delete_history,
             commands::clear_history,
             commands::restart_app,
-            commands::reveal_in_explorer
+            commands::reveal_in_explorer,
+            commands::check_tesseract
         ])
         .setup(|app| {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）
@@ -162,6 +163,18 @@ pub fn run() {
                     e
                 })?;
             app.manage(Mutex::new(history_service));
+
+            // Tesseract 可用性检测：异步执行不阻塞启动，仅记录日志
+            // 资源目录未打包 Tesseract 时（如 Linux/macOS 未运行下载脚本），记录 warning 日志
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    match crate::ocr::check_tesseract_available(&app_handle) {
+                        Ok(version) => log::info!("[Startup] Tesseract 可用: {}", version),
+                        Err(e) => log::warn!("[Startup] Tesseract 不可用: {}", e),
+                    }
+                });
+            }
 
             tray::create_tray(app.handle(), &app_config.shortcuts, &app_config.language)?;
 

@@ -32,6 +32,20 @@ npx vue-tsc --noEmit
 npm run preview
 ```
 
+### 跨平台构建前下载 Tesseract 资源
+
+Windows 平台的 Tesseract 资源已直接包含在 `src-tauri/resources/tesseract/` 中，无需额外下载。Linux 和 macOS 平台在构建前需要在对应平台上运行下载脚本，将预编译 Tesseract 二进制和依赖库下载到 `src-tauri/resources/tesseract-{platform}/`：
+
+```bash
+# Linux 平台构建前下载（需要在 Linux 上运行，使用 apt download）
+npm run fetch-tesseract:linux
+
+# macOS 平台构建前下载（需要在 macOS 上运行，使用 Homebrew）
+npm run fetch-tesseract:macos
+```
+
+脚本支持下载缓存（已存在的文件会跳过），并会自动校验文件大小完整性。
+
 ## 架构
 
 ### 运行时流程
@@ -134,7 +148,11 @@ pub struct ShortcutConfig {
 - **译文展示：** 翻译结果显示在右侧独立面板，支持高度拉伸；原文/译文切换时隐藏/显示译文面板
 - **OCR 源语言：** 支持 `auto`（自动检测）、`chi_sim`（中文简体）、`eng`（英文）、`jpn`（日文）四种模式；自动检测模式通过 Tesseract 内置语言检测实现，可在设置页面配置；新增 `ocr_image` 命令支持按配置的源语言执行 OCR 识别
 - **自动更新：** 使用 `tauri-plugin-updater` 实现，在 `setup()` 中根据 `auto_update` 配置决定是否检查更新；检查更新、下载安装均在后台静默完成，安装完成后自动重启应用；更新检查仅在 release 构建中执行，dev 模式下跳过
-- **Tesseract 资源：** 项目捆绑 Tesseract 可执行文件和语言数据（`src-tauri/resources/tesseract/`），包含中文简体（`chi_sim.traineddata`）和英文（`eng.traineddata`）训练数据，以及 Windows DLL 依赖；OCR 模块优先从资源目录查找，开发模式下回退到系统 PATH
+- **Tesseract 资源：** 项目捆绑 Tesseract 可执行文件和语言数据，按平台分子目录组织：
+  - `src-tauri/resources/tesseract/` — Windows 版本（tesseract.exe + 50+ DLL + tessdata/chi_sim + tessdata/eng），已直接包含在仓库中
+  - `src-tauri/resources/tesseract-linux/` — Linux 版本（tesseract 二进制 + .so 依赖 + tessdata），构建前需在 Linux 上运行 `npm run fetch-tesseract:linux` 下载
+  - `src-tauri/resources/tesseract-macos/` — macOS 版本（tesseract 二进制 + .dylib 依赖 + tessdata），构建前需在 macOS 上运行 `npm run fetch-tesseract:macos` 下载
+  - 训练数据包含中文简体（`chi_sim.traineddata`）和英文（`eng.traineddata`）；OCR 模块所有平台优先从资源目录查找，未找到时回退到系统 PATH，最终未找到时返回包含平台安装指引的中文错误信息；应用启动时异步检测 Tesseract 可用性并记录日志（不阻塞启动）
 - **贴图窗口：** 每张贴图截图都是一个独立的透明 Tauri Webview 窗口，定位在原始截取坐标处，窗口尺寸 = 图片尺寸 + 14px 内边距 + 36px 控制栏高度
 - **图像缓存：** 全屏截图缓存于 `CachedScreenStore`（含 `screen` 和 `overlay_image`），贴图图像缓存于 `PinImageStore`，前端通过命令主动拉取而非 Event 推送
 - **错误处理：** 统一的 `AppError` 枚举，`Display` 输出中文错误信息，包含所有主要错误类型的 `From` 实现

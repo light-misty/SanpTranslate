@@ -266,3 +266,8 @@ export async function isAutoStartEnabled(): Promise<boolean> {
 export async function restartApp(): Promise<void> {
   return invoke('restart_app')
 }
+
+/** 检查 Tesseract 可用性，返回版本信息或抛出错误（供前端在 OCR 失败时主动查询原因） */
+export async function checkTesseract(): Promise<string> {
+  return invoke<string>('check_tesseract')
+}

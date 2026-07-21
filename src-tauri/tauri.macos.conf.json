@@ -5,6 +5,9 @@
     }
   },
   "bundle": {
-    "resources": []
+    "resources": [
+      "resources/tesseract-macos/*",
+      "resources/tesseract-macos/tessdata/*"
+    ]
   }
 }

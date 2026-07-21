@@ -505,7 +505,14 @@ async function doTranslate(forceRetranslate: boolean) {
     updateWindowSize(true)
     adjustWindowPositionIfNeeded()
   } catch (err) {
-    errorMessage.value = String(err)
+    // 识别 Tesseract 不可用错误，去掉"OCR识别失败: "前缀让信息更清晰
+    // 后端在 Tesseract 未找到时返回包含"未找到Tesseract"的错误，已含平台安装指引
+    const errStr = String(err)
+    if (errStr.includes('未找到Tesseract')) {
+      errorMessage.value = errStr.replace(/^OCR识别失败:\s*/, '')
+    } else {
+      errorMessage.value = errStr
+    }
     translateStatus.value = 'error'
     logger.error(TAG, `翻译失败: ${err}`, err)
   }
@@ -541,6 +548,12 @@ async function onOcrCopyOriginal() {
     logger.info(TAG, 'OCR 识别原文已复制到剪贴板')
   } catch (err) {
     logger.error(TAG, `OCR 复制原文失败: ${err}`, err)
+    // Tesseract 不可用时显示错误信息给用户（去掉"OCR识别失败: "前缀）
+    const errStr = String(err)
+    if (errStr.includes('未找到Tesseract')) {
+      errorMessage.value = errStr.replace(/^OCR识别失败:\s*/, '')
+      translateStatus.value = 'error'
+    }
   } finally {
     ocrLoading.value = false
   }

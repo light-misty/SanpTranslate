@@ -181,5 +181,11 @@ export default {
     rateLimited: '请求过于频繁，请稍后再试',
     serverError: '服务器错误，请稍后再试',
     noCachedScreenshot: '缓存中无全屏截图数据，请重新截图',
+    // OCR 引擎不可用时的错误文案
+    ocrNotAvailable: 'OCR 引擎不可用',
+    ocrNotAvailableDesc: '未找到 Tesseract OCR 引擎，OCR 翻译功能无法使用。请安装 Tesseract 后重启应用：',
+    ocrInstallLinux: 'Linux: sudo apt install tesseract-ocr',
+    ocrInstallMacos: 'macOS: brew install tesseract',
+    ocrInstallWindows: 'Windows: 应用已内置 Tesseract，无需额外安装',
   },
 }

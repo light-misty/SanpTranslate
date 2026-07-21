@@ -758,6 +758,12 @@ pub async fn translate_text(
     })
 }
 
+/// 检查 Tesseract 可用性，返回版本信息或错误（供前端主动查询）
+#[tauri::command]
+pub fn check_tesseract(app: tauri::AppHandle) -> Result<String, String> {
+    crate::ocr::check_tesseract_available(&app).map_err(|e| e.to_string())
+}
+
 /// 在系统资源管理器中定位到指定路径
 ///
 /// - 如果是文件：打开父目录并选中该文件

@@ -75,16 +75,15 @@ fn find_tesseract_in_path() -> Result<PathBuf, AppError> {
     ))
 }
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+// Linux: 在系统 PATH 中查找 Tesseract
+#[cfg(target_os = "linux")]
 fn find_tesseract_in_path() -> Result<PathBuf, AppError> {
     let output = Command::new("which")
         .arg(tesseract_exe_name())
         .output()
         .map_err(|_| {
             AppError::OcrError(
-                "Tesseract not found in system PATH. \
-                 Install with 'brew install tesseract' (macOS) or \
-                 'apt install tesseract-ocr' (Linux)".to_string(),
+                "未找到Tesseract可执行文件，请安装 Tesseract：sudo apt install tesseract-ocr（Ubuntu/Debian）或 sudo dnf install tesseract（Fedora）".to_string(),
             )
         })?;
 
@@ -93,22 +92,47 @@ fn find_tesseract_in_path() -> Result<PathBuf, AppError> {
         if let Some(first_line) = stdout.lines().next() {
             let path = PathBuf::from(first_line.trim());
             if path.exists() {
-                log::debug!("[OCR] Using system Tesseract: {}", path.display());
+                log::debug!("[OCR] 使用系统PATH中的Tesseract: {}", path.display());
                 return Ok(path);
             }
         }
     }
 
     Err(AppError::OcrError(
-        "Tesseract not found in system PATH. \
-         Install with 'brew install tesseract' (macOS) or \
-         'apt install tesseract-ocr' (Linux)".to_string(),
+        "未找到Tesseract可执行文件，请安装 Tesseract：sudo apt install tesseract-ocr（Ubuntu/Debian）或 sudo dnf install tesseract（Fedora）".to_string(),
+    ))
+}
+
+// macOS: 在系统 PATH 中查找 Tesseract
+#[cfg(target_os = "macos")]
+fn find_tesseract_in_path() -> Result<PathBuf, AppError> {
+    let output = Command::new("which")
+        .arg(tesseract_exe_name())
+        .output()
+        .map_err(|_| {
+            AppError::OcrError(
+                "未找到Tesseract可执行文件，请安装 Tesseract：brew install tesseract".to_string(),
+            )
+        })?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(first_line) = stdout.lines().next() {
+            let path = PathBuf::from(first_line.trim());
+            if path.exists() {
+                log::debug!("[OCR] 使用系统PATH中的Tesseract: {}", path.display());
+                return Ok(path);
+            }
+        }
+    }
+
+    Err(AppError::OcrError(
+        "未找到Tesseract可执行文件，请安装 Tesseract：brew install tesseract".to_string(),
     ))
 }
 
 /// 从系统查找 Tesseract 可执行文件路径
-/// Windows: 优先查找资源目录中的捆绑版本，再回退到系统 PATH
-/// macOS/Linux: 直接在系统 PATH 中查找（需用户自行安装 Tesseract）
+/// 所有平台优先从应用资源目录查找捆绑版本，未找到时回退到系统 PATH
 pub fn find_tesseract_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
     // Windows: 优先从应用资源目录查找捆绑的 Tesseract
     #[cfg(target_os = "windows")]
@@ -135,10 +159,42 @@ pub fn find_tesseract_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> 
         );
     }
 
-    // macOS/Linux: 跳过捆绑版本，直接在系统 PATH 中查找
-    #[cfg(not(target_os = "windows"))]
+    // Linux: 优先从应用资源目录查找捆绑的 Tesseract
+    #[cfg(target_os = "linux")]
     {
-        log::debug!("[OCR] 跳过捆绑Tesseract（当前平台无捆绑），检查系统PATH...");
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            let bundled_path = resource_dir
+                .join("resources")
+                .join("tesseract-linux")
+                .join(tesseract_exe_name());
+            if bundled_path.exists() {
+                log::debug!("[OCR] 使用资源目录中的Tesseract: {}", bundled_path.display());
+                return Ok(bundled_path);
+            }
+            log::debug!(
+                "[OCR] 资源目录中未找到Tesseract: {}，尝试系统PATH",
+                bundled_path.display()
+            );
+        }
+    }
+
+    // macOS: 优先从应用资源目录查找捆绑的 Tesseract
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            let bundled_path = resource_dir
+                .join("resources")
+                .join("tesseract-macos")
+                .join(tesseract_exe_name());
+            if bundled_path.exists() {
+                log::debug!("[OCR] 使用资源目录中的Tesseract: {}", bundled_path.display());
+                return Ok(bundled_path);
+            }
+            log::debug!(
+                "[OCR] 资源目录中未找到Tesseract: {}，尝试系统PATH",
+                bundled_path.display()
+            );
+        }
     }
 
     // 在系统 PATH 中查找（平台相关命令）
@@ -146,8 +202,7 @@ pub fn find_tesseract_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> 
 }
 
 /// 从系统查找 tessdata 目录路径
-/// Windows: 优先查找资源目录中的捆绑版本，再回退到系统路径
-/// macOS/Linux: 优先查找 TESSDATA_PREFIX，再回退到系统常见路径
+/// 所有平台优先查找资源目录中的捆绑版本，再回退到 TESSDATA_PREFIX 环境变量和系统常见路径
 /// 返回 None 表示未找到，调用方可不传 --tessdata-dir 参数让 Tesseract 使用默认搜索路径
 pub fn find_tessdata_path(app: &tauri::AppHandle) -> Option<PathBuf> {
     // Windows: 优先从应用资源目录查找捆绑的 tessdata
@@ -160,6 +215,44 @@ pub fn find_tessdata_path(app: &tauri::AppHandle) -> Option<PathBuf> {
                     .join("tesseract")
                     .join("tessdata"),
             );
+            if bundled_path.exists() {
+                log::debug!("[OCR] 使用资源目录中的tessdata: {}", bundled_path.display());
+                return Some(bundled_path);
+            }
+            log::debug!(
+                "[OCR] 资源目录中未找到tessdata: {}",
+                bundled_path.display()
+            );
+        }
+    }
+
+    // Linux: 优先从应用资源目录查找捆绑的 tessdata
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            let bundled_path = resource_dir
+                .join("resources")
+                .join("tesseract-linux")
+                .join("tessdata");
+            if bundled_path.exists() {
+                log::debug!("[OCR] 使用资源目录中的tessdata: {}", bundled_path.display());
+                return Some(bundled_path);
+            }
+            log::debug!(
+                "[OCR] 资源目录中未找到tessdata: {}",
+                bundled_path.display()
+            );
+        }
+    }
+
+    // macOS: 优先从应用资源目录查找捆绑的 tessdata
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            let bundled_path = resource_dir
+                .join("resources")
+                .join("tesseract-macos")
+                .join("tessdata");
             if bundled_path.exists() {
                 log::debug!("[OCR] 使用资源目录中的tessdata: {}", bundled_path.display());
                 return Some(bundled_path);
@@ -229,6 +322,45 @@ fn platform_tessdata_paths() -> Vec<PathBuf> {
     }
     paths.push(PathBuf::from("/usr/share/tesseract-ocr/tessdata"));
     paths
+}
+
+/// 检查 Tesseract 可用性，返回版本信息或错误
+pub fn check_tesseract_available(app: &tauri::AppHandle) -> Result<String, AppError> {
+    // 获取Tesseract可执行文件路径
+    let tesseract_path = find_tesseract_path(app)?;
+
+    // 构建 --version 命令
+    let mut cmd = Command::new(&tesseract_path);
+    cmd.arg("--version");
+
+    // Windows 下抑制控制台窗口弹出
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000);
+
+    // 执行命令
+    let output = cmd
+        .output()
+        .map_err(|e| AppError::OcrError(format!("Tesseract启动失败: {}", e)))?;
+
+    // Tesseract --version 输出可能在 stdout 或 stderr，优先使用 stdout
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    let version_output = if !stdout.trim().is_empty() {
+        stdout
+    } else {
+        stderr
+    };
+
+    // 提取第一行作为版本信息（如 "tesseract 5.3.0"）
+    let version = version_output
+        .lines()
+        .next()
+        .unwrap_or("unknown")
+        .trim()
+        .to_string();
+
+    log::info!("[OCR] Tesseract版本: {}", version);
+    Ok(version)
 }
 
 /// 调用Tesseract CLI提取图像中的文字及坐标

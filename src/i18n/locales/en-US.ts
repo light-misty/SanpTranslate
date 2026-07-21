@@ -181,5 +181,11 @@ export default {
     rateLimited: 'Too many requests. Please try again later.',
     serverError: 'Server error. Please try again later.',
     noCachedScreenshot: 'No cached screenshot data. Please capture again.',
+    // OCR engine not available error messages
+    ocrNotAvailable: 'OCR Engine Not Available',
+    ocrNotAvailableDesc: 'Tesseract OCR engine not found. OCR translation is unavailable. Please install Tesseract and restart the app:',
+    ocrInstallLinux: 'Linux: sudo apt install tesseract-ocr',
+    ocrInstallMacos: 'macOS: brew install tesseract',
+    ocrInstallWindows: 'Windows: Tesseract is bundled with the app, no additional installation needed',
   },
 }
