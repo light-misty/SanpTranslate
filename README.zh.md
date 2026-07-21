@@ -27,6 +27,34 @@
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+## 下载安装
+
+从 [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) 下载：
+
+| 平台 | 格式 |
+|------|------|
+| Windows 10+ | `.exe` |
+| macOS 12+ | `.dmg` |
+| Linux (x86_64) | `.AppImage` |
+
+⚠️ **系统要求：**
+
+- **Windows**：Windows 10 (1803+)，需 WebView2（系统自带）
+- **macOS**：macOS 12+，需 WebKit（系统自带），且需通过 Homebrew 安装 Tesseract 及语言包：
+  ```bash
+  brew install tesseract tesseract-lang
+  ```
+- **Linux**：支持 X11/Wayland，需 WebKitGTK，且需安装 Tesseract 引擎及对应的语言包：
+  - **Ubuntu / Debian**：
+    ```bash
+    sudo apt update
+    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
+    ```
+  - **Arch Linux**：
+    ```bash
+    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
+    ```
+
 ## 功能特性
 
 - **框选截图翻译** — 全局快捷键 `Ctrl+Alt+L`，拖拽框选任意区域，截图自动贴在原位
@@ -79,35 +107,6 @@ Ctrl+Alt+M  → 打开文本翻译窗口
 | 拖拽 | 窗口标题区（排除按钮区域） |
 | 拉伸面板 | 右侧面板边缘拖拽调整高度 |
 | 关闭 | 双击图片区域 |
-
-## 下载安装
-
-从 [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) 下载：
-
-| 平台 | 格式 |
-|------|------|
-| Windows 10+ | `.exe` |
-| macOS 12+ | `.dmg` |
-| Linux (x86_64) | `.AppImage` |
-
-**系统要求：**
-
-- **Windows**：Windows 10 (1803+)，需 WebView2（系统自带）
-- **macOS**：macOS 12+，需 WebKit（系统自带），且需通过 Homebrew 安装 Tesseract 及语言包：
-  ```bash
-  brew install tesseract tesseract-lang
-  ```
-- **Linux**：支持 X11/Wayland，需 WebKitGTK，且需安装 Tesseract 引擎及对应的语言包：
-  - **Ubuntu / Debian**：
-    ```bash
-    sudo apt update
-    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
-    ```
-  - **Arch Linux**：
-    ```bash
-    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
-    ```
-
 ## 技术栈
 
 | 层级 | 技术 |

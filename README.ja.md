@@ -27,6 +27,34 @@ Tauri 2 ベースのデスクトップスクリーンショット翻訳ツール
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+## ダウンロードとインストール
+
+[Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) からダウンロード:
+
+| プラットフォーム | 形式 |
+|-----------------|------|
+| Windows 10+ | `.exe` |
+| macOS 12+ | `.dmg` |
+| Linux (x86_64) | `.AppImage` |
+
+⚠️ **システム要件:**
+
+- **Windows**: Windows 10 (1803+), WebView2 が必要 (システム標準搭載)
+- **macOS**: macOS 12+, WebKit が必要 (システム標準搭載). Homebrew 経由で Tesseract および言語データのインストールが必要:
+  ```bash
+  brew install tesseract tesseract-lang
+  ```
+- **Linux**: X11/Wayland 対応、WebKitGTK が必要。Tesseract OCR エンジンおよび該当する言語パックのインストールが必要:
+  - **Ubuntu / Debian**:
+    ```bash
+    sudo apt update
+    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
+    ```
+  - **Arch Linux**:
+    ```bash
+    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
+    ```
+
 ## 機能一覧
 
 - **領域選択翻訳** — グローバルホットキー `Ctrl+Alt+L`、領域をドラッグ選択、スクリーンショットを元の位置に自動貼り付け
@@ -79,35 +107,6 @@ Ctrl+Alt+M  → テキスト翻訳ウィンドウを開く
 | 移動 | ウィンドウタイトル領域（ボタン領域を除く） |
 | パネル伸縮 | 右側パネル端をドラッグ |
 | 閉じる | 画像領域をダブルクリック |
-
-## ダウンロードとインストール
-
-[Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) からダウンロード:
-
-| プラットフォーム | 形式 |
-|-----------------|------|
-| Windows 10+ | `.exe` |
-| macOS 12+ | `.dmg` |
-| Linux (x86_64) | `.AppImage` |
-
-**システム要件:**
-
-- **Windows**: Windows 10 (1803+), WebView2 が必要 (システム標準搭載)
-- **macOS**: macOS 12+, WebKit が必要 (システム標準搭載). Homebrew 経由で Tesseract および言語データのインストールが必要:
-  ```bash
-  brew install tesseract tesseract-lang
-  ```
-- **Linux**: X11/Wayland 対応、WebKitGTK が必要。Tesseract OCR エンジンおよび該当する言語パックのインストールが必要:
-  - **Ubuntu / Debian**:
-    ```bash
-    sudo apt update
-    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
-    ```
-  - **Arch Linux**:
-    ```bash
-    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
-    ```
-
 ## 技術スタック
 
 | 階層 | 技術 |

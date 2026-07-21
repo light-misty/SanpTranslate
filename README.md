@@ -27,6 +27,34 @@ SnapTranslate is a desktop screenshot translation tool built with Tauri 2. Selec
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+## Download
+
+Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):
+
+| Platform | Format |
+|----------|--------|
+| Windows 10+ | `.exe` |
+| macOS 12+ | `.dmg` |
+| Linux (x86_64) | `.AppImage` |
+
+⚠️ **System Requirements:**
+
+- **Windows**: Windows 10 (1803+), WebView2 (built into the system)
+- **macOS**: macOS 12+, WebKit (built into the system). Requires Tesseract and language data installed via Homebrew:
+  ```bash
+  brew install tesseract tesseract-lang
+  ```
+- **Linux**: X11/Wayland support, WebKitGTK required. Requires Tesseract OCR engine and corresponding language packs:
+  - **Ubuntu / Debian**:
+    ```bash
+    sudo apt update
+    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
+    ```
+  - **Arch Linux**:
+    ```bash
+    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
+    ```
+
 ## Features
 
 - **Region Screenshot Translation** — Global hotkey `Ctrl+Alt+L`, drag-select any region, screenshot pinned at original position
@@ -79,35 +107,6 @@ Ctrl+Alt+M  → Open text translation window
 | Drag | Window title area (excluding buttons) |
 | Stretch Panel | Drag right panel edge to adjust height |
 | Close | Double-click image area |
-
-## Download
-
-Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):
-
-| Platform | Format |
-|----------|--------|
-| Windows 10+ | `.exe` |
-| macOS 12+ | `.dmg` |
-| Linux (x86_64) | `.AppImage` |
-
-**System Requirements:**
-
-- **Windows**: Windows 10 (1803+), WebView2 (built into the system)
-- **macOS**: macOS 12+, WebKit (built into the system). Requires Tesseract and language data installed via Homebrew:
-  ```bash
-  brew install tesseract tesseract-lang
-  ```
-- **Linux**: X11/Wayland support, WebKitGTK required. Requires Tesseract OCR engine and corresponding language packs:
-  - **Ubuntu / Debian**:
-    ```bash
-    sudo apt update
-    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
-    ```
-  - **Arch Linux**:
-    ```bash
-    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
-    ```
-
 ## Tech Stack
 
 | Layer | Technology |

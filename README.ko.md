@@ -27,6 +27,34 @@ Tauri 2 기반 데스크톱 스크린샷 번역 도구입니다. 화면 영역�
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+## 다운로드 및 설치
+
+[Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) 페이지에서 다운로드:
+
+| 플랫폼 | 형식 |
+|--------|------|
+| Windows 10+ | `.exe` |
+| macOS 12+ | `.dmg` |
+| Linux (x86_64) | `.AppImage` |
+
+⚠️ **시스템 요구 사항:**
+
+- **Windows**: Windows 10 (1803+), WebView2 필요 (시스템 기본 제공)
+- **macOS**: macOS 12+, WebKit 필요 (시스템 기본 제공). Homebrew를 통해 Tesseract 및 언어 데이터 패키지 설치 필요:
+  ```bash
+  brew install tesseract tesseract-lang
+  ```
+- **Linux**: X11/Wayland 지원, WebKitGTK 필요. Tesseract OCR 엔진 및 해당 언어 팩 설치 필요:
+  - **Ubuntu / Debian**:
+    ```bash
+    sudo apt update
+    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
+    ```
+  - **Arch Linux**:
+    ```bash
+    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
+    ```
+
 ## 기능 목록
 
 - **영역 선택 번역** — 전역 단축키 `Ctrl+Alt+L`, 영역 드래그 선택, 스크린샷 원위치 자동 고정
@@ -79,35 +107,6 @@ Ctrl+Alt+M  → 텍스트 번역 창 열기
 | 이동 | 창 제목 영역 (버튼 영역 제외) |
 | 패널 늘리기 | 우측 패널 가장자리 드래그 |
 | 닫기 | 이미지 영역 더블클릭 |
-
-## 다운로드 및 설치
-
-[Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) 페이지에서 다운로드:
-
-| 플랫폼 | 형식 |
-|--------|------|
-| Windows 10+ | `.exe` |
-| macOS 12+ | `.dmg` |
-| Linux (x86_64) | `.AppImage` |
-
-**시스템 요구 사항:**
-
-- **Windows**: Windows 10 (1803+), WebView2 필요 (시스템 기본 제공)
-- **macOS**: macOS 12+, WebKit 필요 (시스템 기본 제공). Homebrew를 통해 Tesseract 및 언어 데이터 패키지 설치 필요:
-  ```bash
-  brew install tesseract tesseract-lang
-  ```
-- **Linux**: X11/Wayland 지원, WebKitGTK 필요. Tesseract OCR 엔진 및 해당 언어 팩 설치 필요:
-  - **Ubuntu / Debian**:
-    ```bash
-    sudo apt update
-    sudo apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-eng tesseract-ocr-jpn
-    ```
-  - **Arch Linux**:
-    ```bash
-    sudo pacman -S tesseract tesseract-data-chi_sim tesseract-data-eng tesseract-data-jpn
-    ```
-
 ## 기술 스택
 
 | 계층 | 기술 |
