@@ -45,11 +45,6 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
-.trae/
-.claude/
-.github/*
-!.github/workflows/
-!.github/release-notes.md
 
 # 日志文件
 *.log
