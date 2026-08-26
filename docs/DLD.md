@@ -554,7 +554,7 @@ pub fn create_history_window(app: &tauri::AppHandle) -> Result<Window, AppError>
 
 ## 3. 前端模块详细设计
 
-### 3.1 PinView.vue 贴图窗口组件
+### 3.1 PinView.tsx 贴图窗口组件
 
 #### 3.1.1 组件职责
 
@@ -664,7 +664,7 @@ function onToggleOriginal() {
 
 ---
 
-### 3.2 OverlayView.vue 截图蒙版组件
+### 3.2 OverlayView.tsx 截图蒙版组件
 
 #### 3.2.1 组件职责
 
@@ -742,7 +742,7 @@ function onContextMenu() {
 
 ---
 
-### 3.3 TransLabel.vue 译文标签组件
+### 3.3 TransLabel.tsx 译文标签组件
 
 #### 3.3.1 Props
 
@@ -793,7 +793,7 @@ defineEmits<{
 
 ---
 
-### 3.4 ControlBar.vue 控制栏组件
+### 3.4 ControlBar.tsx 控制栏组件
 
 #### 3.4.1 Props
 
@@ -893,7 +893,7 @@ defineEmits<{
 
 ---
 
-### 3.5 SettingsView.vue 设置页面
+### 3.5 SettingsView.tsx 设置页面
 
 #### 3.5.1 组件职责
 
@@ -913,7 +913,7 @@ defineEmits<{
 
 ---
 
-### 3.6 ShortcutInput.vue 快捷键输入组件
+### 3.6 ShortcutInput.tsx 快捷键输入组件
 
 #### 3.6.1 组件职责
 
@@ -989,7 +989,7 @@ defineEmits<{
 
 ---
 
-### 3.7 HistoryView.vue 历史面板
+### 3.7 HistoryView.tsx 历史面板
 
 #### 3.7.1 组件职责
 

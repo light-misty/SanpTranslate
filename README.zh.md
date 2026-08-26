@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Tauri-2.x-FFC131" alt="Tauri 2.x" />
   <img src="https://img.shields.io/static/v1?label=Rust&message=2024&color=orange" alt="Rust 2024" />
-  <img src="https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js" alt="Vue 3.5" />
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React 18" />
   <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript" alt="TypeScript 5.7" />
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" />
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey" alt="Cross Platform" />
@@ -125,9 +125,9 @@ Ctrl+Alt+M  → 打开文本翻译窗口
 ```bash
 git clone https://github.com/XuMingKe-06/SanpTranslate.git
 cd SnapTranslate
-npm install
-npm run tauri dev    # 开发模式 (HMR)
-npm run tauri build  # 生产构建
+pnpm install
+pnpm run tauri dev    # 开发模式 (HMR)
+pnpm run tauri build  # 生产构建
 ```
 
 ## 配置文件位置

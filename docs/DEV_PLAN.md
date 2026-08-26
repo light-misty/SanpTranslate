@@ -122,9 +122,9 @@ refactor(translate): 抽象 API 客户端以支持多种模型格式
 
 | 编号     | 任务                                         | 前置依赖  | 产出文件                                          |
 |---------|----------------------------------------------|----------|---------------------------------------------------|
-| S1-T01  | 初始化 Tauri 2 + Vue 3 + TypeScript 项目      | 无       | package.json, vite.config.ts, tsconfig.json        |
-| S1-T02  | 配置 Vite + Vue Router + Pinia + vue-i18n     | S1-T01   | src/main.ts, src/App.vue                           |
-| S1-T03  | 配置 Naive UI 按需引入                        | S1-T01   | vite.config.ts 更新                                |
+| S1-T01  | 初始化 Tauri 2 + React 18 + TypeScript 项目      | 无       | package.json, vite.config.ts, tsconfig.json        |
+| S1-T02  | 配置 Vite + react-router-dom + Zustand + react-i18next | S1-T01   | src/main.tsx, src/App.tsx                  |
+| S1-T03  | 配置 Ant Design 按需引入                      | S1-T01   | vite.config.ts 更新                                |
 | S1-T04  | 初始化 Rust 后端项目结构                      | S1-T01   | src-tauri/Cargo.toml, src-tauri/src/lib.rs         |
 | S1-T05  | 定义统一错误类型 AppError                     | S1-T04   | src-tauri/src/error.rs                             |
 | S1-T06  | 实现 tray 模块（托盘图标 + 菜单）             | S1-T04   | src-tauri/src/tray/mod.rs                          |
@@ -157,9 +157,9 @@ refactor(translate): 抽象 API 客户端以支持多种模型格式
 | S2-T03  | 实现 hotkey 模块（全局快捷键注册与监听）        | S1-T08   | src-tauri/src/hotkey/mod.rs                        |
 | S2-T04  | 实现 window::create_overlay_window（蒙版窗口） | S2-T01   | src-tauri/src/window/overlay.rs                    |
 | S2-T05  | 实现 window::create_pin_window（贴图窗口）     | S2-T01   | src-tauri/src/window/pin.rs                        |
-| S2-T06  | 前端 Overlay.vue（截图蒙版 + 框选交互）        | S2-T04   | src/components/Overlay.vue                         |
-| S2-T07  | 前端 PinWindow.vue（贴图显示 + 拖拽 + 双击关闭）| S2-T05  | src/components/PinWindow.vue                       |
-| S2-T08  | 前端 ControlBar.vue（控制栏基础按钮）          | S2-T07   | src/components/ControlBar.vue                      |
+| S2-T06  | 前端 Overlay.tsx（截图蒙版 + 框选交互）        | S2-T04   | src/components/Overlay.tsx                         |
+| S2-T07  | 前端 PinWindow.tsx（贴图显示 + 拖拽 + 双击关闭）| S2-T05  | src/components/PinWindow.tsx                       |
+| S2-T08  | 前端 ControlBar.tsx（控制栏基础按钮）          | S2-T07   | src/components/ControlBar.tsx                      |
 | S2-T09  | 截图流程端到端联调                             | S2-T06, S2-T07 | 完整截图 -> 贴图流程                        |
 | S2-T10  | 剪贴板贴图流程端到端联调                       | S2-T02, S2-T05 | Ctrl+Shift+V 贴图流程                      |
 | S2-T11  | 截图自动复制到剪贴板                           | S2-T02, S2-T09 | 截图后自动写入剪贴板                       |
@@ -191,13 +191,13 @@ refactor(translate): 抽象 API 客户端以支持多种模型格式
 | S3-T02  | 实现 translate 模块（API 客户端 + Prompt 构造） | S1-T05   | src-tauri/src/translate/mod.rs, client.rs, prompt.rs|
 | S3-T03  | 实现 translate::parser（响应解析 + 译文映射）   | S3-T02   | src-tauri/src/translate/parser.rs                  |
 | S3-T04  | 注册 OCR 与翻译相关 Tauri Command              | S3-T01, S3-T02 | src-tauri/src/commands.rs 更新              |
-| S3-T05  | 前端 TransLabel.vue（译文标签组件）            | S2-T07   | src/components/TransLabel.vue                      |
-| S3-T06  | PinWindow.vue 集成 OCR 翻译流程               | S3-T04, S3-T05 | PinWindow.vue 更新                          |
-| S3-T07  | ControlBar.vue 翻译状态按钮逻辑               | S3-T06   | ControlBar.vue 更新                                |
-| S3-T08  | 译文标签单击复制 + "已复制"提示               | S3-T05   | TransLabel.vue 更新                                |
-| S3-T09  | "复制全部"按钮功能                            | S3-T06   | ControlBar.vue 更新                                |
-| S3-T10  | "原文/译文"切换功能                           | S3-T06   | PinWindow.vue 更新                                 |
-| S3-T11  | 翻译错误处理与提示                            | S3-T06   | PinWindow.vue 更新                                 |
+| S3-T05  | 前端 TransLabel.tsx（译文标签组件）            | S2-T07   | src/components/TransLabel.tsx                      |
+| S3-T06  | PinWindow.tsx 集成 OCR 翻译流程               | S3-T04, S3-T05 | PinWindow.tsx 更新                          |
+| S3-T07  | ControlBar.tsx 翻译状态按钮逻辑               | S3-T06   | ControlBar.tsx 更新                                |
+| S3-T08  | 译文标签单击复制 + "已复制"提示               | S3-T05   | TransLabel.tsx 更新                                |
+| S3-T09  | "复制全部"按钮功能                            | S3-T06   | ControlBar.tsx 更新                                |
+| S3-T10  | "原文/译文"切换功能                           | S3-T06   | PinWindow.tsx 更新                                 |
+| S3-T11  | 翻译错误处理与提示                            | S3-T06   | PinWindow.tsx 更新                                 |
 | S3-T12  | 单元测试：ocr 模块                            | S3-T01   | tests/                                             |
 | S3-T13  | 单元测试：translate 模块（Mock API）          | S3-T02   | tests/                                             |
 | S3-T14  | 集成测试：OCR 翻译完整流程                    | S3-T06   | tests/                                             |
@@ -227,18 +227,18 @@ refactor(translate): 抽象 API 客户端以支持多种模型格式
 |---------|----------------------------------------------|----------|---------------------------------------------------|
 | S4-T01  | 实现 config::secure（密钥安全存储）           | S1-T08   | src-tauri/src/config/secure.rs                     |
 | S4-T02  | 实现 test_api_connection 命令                 | S3-T02   | src-tauri/src/translate/client.rs 更新             |
-| S4-T03  | 前端 SettingsView.vue（设置页面）             | S1-T08   | src/views/SettingsView.vue                         |
-| S4-T04  | 设置页面表单验证与保存逻辑                    | S4-T03   | SettingsView.vue 更新                              |
-| S4-T05  | 密钥安全输入（掩码/显示切换）                 | S4-T01, S4-T03 | SettingsView.vue 更新                        |
-| S4-T06  | 连接测试按钮功能                              | S4-T02, S4-T03 | SettingsView.vue 更新                        |
-| S4-T07  | 首次未配置 API 时引导至设置                   | S4-T03   | PinWindow.vue 更新                                 |
+| S4-T03  | 前端 SettingsView.tsx（设置页面）             | S1-T08   | src/views/SettingsView.tsx                         |
+| S4-T04  | 设置页面表单验证与保存逻辑                    | S4-T03   | SettingsView.tsx 更新                              |
+| S4-T05  | 密钥安全输入（掩码/显示切换）                 | S4-T01, S4-T03 | SettingsView.tsx 更新                        |
+| S4-T06  | 连接测试按钮功能                              | S4-T02, S4-T03 | SettingsView.tsx 更新                        |
+| S4-T07  | 首次未配置 API 时引导至设置                   | S4-T03   | PinWindow.tsx 更新                                 |
 | S4-T08  | 实现 history 模块（SQLite 初始化 + CRUD）      | S1-T05   | src-tauri/src/history/mod.rs, db.rs                |
 | S4-T09  | 实现 history::thumbnail（缩略图生成）          | S4-T08   | src-tauri/src/history/thumbnail.rs                 |
 | S4-T10  | 翻译完成后自动写入历史                        | S4-T08, S3-T06 | commands.rs / translate 流程更新             |
-| S4-T11  | 前端 HistoryView.vue（历史面板）              | S4-T08   | src/views/HistoryView.vue                          |
-| S4-T12  | 前端 HistoryItem.vue（历史条目组件）           | S4-T11   | src/components/HistoryItem.vue                     |
-| S4-T13  | 历史详情查看与复制                            | S4-T11   | HistoryView.vue 更新                               |
-| S4-T14  | 历史逐条删除与清空全部                         | S4-T11   | HistoryView.vue 更新                               |
+| S4-T11  | 前端 HistoryView.tsx（历史面板）              | S4-T08   | src/views/HistoryView.tsx                          |
+| S4-T12  | 前端 HistoryItem.tsx（历史条目组件）           | S4-T11   | src/components/HistoryItem.tsx                     |
+| S4-T13  | 历史详情查看与复制                            | S4-T11   | HistoryView.tsx 更新                               |
+| S4-T14  | 历史逐条删除与清空全部                         | S4-T11   | HistoryView.tsx 更新                               |
 | S4-T15  | 剪贴板贴图不产生历史记录（验证）               | S4-T10   | 逻辑验证                                           |
 | S4-T16  | 实现 i18n 中文语言包                           | S1-T02   | src/i18n/zh-CN.ts                                  |
 | S4-T17  | 实现 i18n 英文语言包                           | S1-T02   | src/i18n/en-US.ts                                  |
@@ -314,21 +314,21 @@ S1 (基础骨架)
  |     |-- capture 模块 ---------> 依赖 S1 error
  |     |-- clipboard 模块 -------> 依赖 S1 commands
  |     |-- hotkey 模块 ----------> 依赖 S1 config
- |     |-- Overlay.vue ----------> 依赖 capture + window
- |     |-- PinWindow.vue --------> 依赖 window + clipboard
- |     |-- ControlBar.vue -------> 依赖 PinWindow
+ |     |-- Overlay.tsx ----------> 依赖 capture + window
+ |     |-- PinWindow.tsx --------> 依赖 window + clipboard
+ |     |-- ControlBar.tsx -------> 依赖 PinWindow
  |
  +-- S3 (OCR翻译)
  |     |-- ocr 模块 -------------> 依赖 S1 error
  |     |-- translate 模块 -------> 依赖 S1 error + config
- |     |-- TransLabel.vue -------> 依赖 PinWindow
+ |     |-- TransLabel.tsx -------> 依赖 PinWindow
  |     |-- 翻译流程联调 ---------> 依赖 ocr + translate + PinWindow
  |
  +-- S4 (配置/历史)
  |     |-- config secure --------> 依赖 S1 config
- |     |-- SettingsView.vue -----> 依赖 S1 config + S4 secure
+ |     |-- SettingsView.tsx -----> 依赖 S1 config + S4 secure
  |     |-- history 模块 ---------> 依赖 S1 error
- |     |-- HistoryView.vue ------> 依赖 history
+ |     |-- HistoryView.tsx ------> 依赖 history
  |     |-- i18n -----------------> 依赖 S1 框架
  |     |-- 快捷键自定义 ----------> 依赖 S2 hotkey + S4 SettingsView
  |
@@ -343,9 +343,9 @@ S1 (基础骨架)
 ```
 S1-T04 (Rust后端初始化) --> S1-T05 (AppError) --> S2-T01 (capture) --> S2-T04 (overlay窗口)
                                                                         |
-S2-T06 (Overlay.vue) <--------------------------------------------------+
+S2-T06 (Overlay.tsx) <--------------------------------------------------+
      |
-S2-T07 (PinWindow.vue) --> S3-T05 (TransLabel) --> S3-T06 (OCR翻译集成)
+S2-T07 (PinWindow.tsx) --> S3-T05 (TransLabel) --> S3-T06 (OCR翻译集成)
                                                         |
 S4-T03 (SettingsView) --> S4-T20 (快捷键自定义) ---------+
 ```
@@ -417,7 +417,7 @@ S4-T03 (SettingsView) --> S4-T20 (快捷键自定义) ---------+
 每次推送到 develop / feature 分支触发:
   1. Rust: cargo fmt --check && cargo clippy && cargo test
   2. Frontend: eslint && vitest run
-  3. Build: npm run tauri build (仅检查编译通过)
+  3. Build: pnpm run tauri build (仅检查编译通过)
 
 每次合并到 main 触发:
   1. 完整 CI 流水线
@@ -440,7 +440,7 @@ rustup default stable
 node --version
 
 # Tauri CLI
-npm install -g @tauri-apps/cli
+pnpm install -g @tauri-apps/cli
 
 # Tesseract OCR (Windows)
 # 从 https://github.com/UB-Mannheim/tesseract/releases 下载安装
@@ -459,33 +459,33 @@ sudo apt install libtesseract-dev tesseract-ocr-eng
 cd d:\DeskTop\SanpTranslate
 
 # 安装前端依赖
-npm install
+pnpm install
 
 # 开发模式启动
-npm run tauri dev
+pnpm run tauri dev
 ```
 
 ### 8.3 常用开发命令
 
 ```bash
 # 前端开发（仅前端热更新）
-npm run dev
+pnpm run dev
 
 # Tauri 开发（前后端联调）
-npm run tauri dev
+pnpm run tauri dev
 
 # Rust 测试
 cd src-tauri; cargo test; cd ..
 
 # 前端测试
-npm run test
+pnpm run test
 
 # 代码检查
 cd src-tauri; cargo clippy; cd ..
-npm run lint
+pnpm run lint
 
 # 构建发布
-npm run tauri build
+pnpm run tauri build
 ```
 
 ---

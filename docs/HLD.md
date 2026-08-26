@@ -31,18 +31,18 @@
 ```
 SnapTranslate/
   |-- src/                          # 前端源码
-  |     |-- App.vue                 # 根组件
-  |     |-- main.ts                 # 前端入口
-  |     |-- components/             # Vue 组件
-  |     |     |-- PinWindow.vue     # 贴图窗口组件
-  |     |     |-- Overlay.vue       # 截图蒙版组件
-  |     |     |-- TransLabel.vue    # 译文标签组件
-  |     |     |-- ControlBar.vue    # 控制栏组件
-  |     |     |-- HistoryItem.vue   # 历史条目组件
+  |     |-- App.tsx                 # 根组件
+  |     |-- main.tsx                 # 前端入口
+  |     |-- components/             # React 组件
+  |     |     |-- PinWindow.tsx     # 贴图窗口组件
+  |     |     |-- Overlay.tsx       # 截图蒙版组件
+  |     |     |-- TransLabel.tsx    # 译文标签组件
+  |     |     |-- ControlBar.tsx    # 控制栏组件
+  |     |     |-- HistoryItem.tsx   # 历史条目组件
   |     |-- views/                  # 页面视图
-  |     |     |-- SettingsView.vue  # 设置页面
-  |     |     |-- HistoryView.vue   # 历史面板页面
-  |     |-- stores/                 # Pinia 状态管理
+  |     |     |-- SettingsView.tsx  # 设置页面
+  |     |     |-- HistoryView.tsx   # 历史面板页面
+  |     |-- stores/                 # Zustand 状态管理
   |     |     |-- pinStore.ts       # 贴图状态
   |     |     |-- configStore.ts    # 配置状态
   |     |     |-- historyStore.ts   # 历史状态
@@ -290,7 +290,7 @@ interface TranslatedBlock {
 1. hotkey 模块检测到 Ctrl+Alt+L
 2. 调用 capture::capture_fullscreen() 获取全屏图像
 3. 调用 window::create_overlay_window() 创建蒙版窗口
-4. 前端 Overlay.vue 绘制蒙版，监听鼠标事件
+4. 前端 Overlay.tsx 绘制蒙版，监听鼠标事件
 5. 用户拖拽选区，前端实时绘制选区矩形
 6. 用户松开鼠标，前端调用 capture_region_from_cache 命令
 7. capture 模块裁剪选区图像，返回 Base64

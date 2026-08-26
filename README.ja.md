@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Tauri-2.x-FFC131" alt="Tauri 2.x" />
   <img src="https://img.shields.io/static/v1?label=Rust&message=2024&color=orange" alt="Rust 2024" />
-  <img src="https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js" alt="Vue 3.5" />
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React 18" />
   <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript" alt="TypeScript 5.7" />
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" />
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey" alt="Cross Platform" />
@@ -108,12 +108,12 @@ Ctrl+Alt+M  → テキスト翻訳ウィンドウを開く
 | 階層 | 技術 |
 |------|------|
 | デスクトップフレームワーク | Tauri 2.x |
-| フロントエンド | Vue 3.5 + TypeScript + Vite 6 |
-| UI | Naive UI (ダークテーマ) |
+| フロントエンド | React 18 + TypeScript + Vite 6 |
+| UI | Ant Design (ダークテーマ) |
 | バックエンド | Rust (2024 edition) |
-| 状態管理 | Pinia 3 |
-| ルーティング | Vue Router 5 |
-| 国際化 | vue-i18n 11 |
+| 状態管理 | Zustand 5 |
+| ルーティング | react-router-dom 6 |
+| 国際化 | react-i18next + i18next 24 |
 | キャプチャ | xcap |
 | OCR | Tesseract CLI (オフライン) |
 | 翻訳 | reqwest → OpenAI 互換 API |
@@ -125,9 +125,9 @@ Ctrl+Alt+M  → テキスト翻訳ウィンドウを開く
 ```bash
 git clone https://github.com/XuMingKe-06/SanpTranslate.git
 cd SnapTranslate
-npm install
-npm run tauri dev    # 開発モード (HMR)
-npm run tauri build  # プロダクションビルド
+pnpm install
+pnpm run tauri dev    # 開発モード (HMR)
+pnpm run tauri build  # プロダクションビルド
 ```
 
 ## 設定ファイルの場所

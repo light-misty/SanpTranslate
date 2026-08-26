@@ -44,9 +44,9 @@
 | 层级           | 技术                          | 版本       | 用途                           |
 |---------------|-------------------------------|------------|--------------------------------|
 | 桌面框架       | Tauri                         | 2.x        | 跨平台桌面应用壳               |
-| 前端框架       | Vue 3                         | 3.5+       | UI 渲染与交互                  |
+| 前端框架       | React 18                      | 18.x       | UI 渲染与交互                  |
 | 前端语言       | TypeScript                    | 5.x        | 类型安全的前端开发             |
-| UI 组件库      | Naive UI                      | 2.x        | 轻量级 Vue 3 组件库            |
+| UI 组件库      | Ant Design (antd)             | 5.x        | React 组件库                   |
 | 构建工具       | Vite                          | 6.x        | 前端构建与热更新               |
 | 后端语言       | Rust                          | 1.85+      | 系统级操作与核心逻辑           |
 | 屏幕截图       | xcap                          | 0.9+       | 跨平台屏幕捕获                 |
@@ -58,8 +58,8 @@
 | 剪贴板         | tauri-plugin-clipboard-manager| 2.x        | 系统剪贴板读写                 |
 | 全局快捷键     | tauri-plugin-global-shortcut  | 2.x        | 全局快捷键注册与监听           |
 | 开机自启动     | tauri-plugin-autostart        | 2.x        | 开机自启动管理                 |
-| 状态管理       | Pinia                         | 3.x        | Vue 前端状态管理               |
-| 国际化         | vue-i18n                      | 11.x       | 界面语言切换                   |
+| 状态管理       | Zustand                       | 5.x        | React 前端状态管理             |
+| 国际化         | react-i18next                 | 24.x       | 界面语言切换                   |
 
 ### 2.3 选型理由
 
@@ -85,7 +85,7 @@
 | 响应式系统   | Proxy-based，细粒度更新              | 不可变数据，需手动优化          |
 | Tauri 集成   | 社区示例丰富                         | 社区示例丰富                    |
 
-**结论**：Vue 3 的模板语法更直观，Naive UI 轻量且 tree-shakable，适合本项目的极简 UI 需求。
+**结论**：综合考虑生态与团队技术栈，项目最终选用 React 18，搭配 Ant Design（antd）组件库与 Zustand 状态管理，满足本项目的 UI 需求。
 
 #### 2.3.3 Tesseract OCR 选型
 
@@ -112,25 +112,25 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 +------------------------------------------------------------------+
 |                                                                   |
 |  +------------------------------------------------------------+  |
-|  |                    前端层 (WebView / Vue 3)                  |  |
+|  |                    前端层 (WebView / React 18)                  |  |
 |  |                                                            |  |
 |  |  +------------------+  +------------------+                |  |
 |  |  | 贴图窗口组件      |  | 设置窗口组件      |                |  |
-|  |  | PinView.vue       |  | SettingsView.vue |                |  |
+|  |  | PinView.tsx       |  | SettingsView.tsx |                |  |
 |  |  +------------------+  +------------------+                |  |
 |  |                                                            |  |
 |  |  +------------------+  +------------------+                |  |
 |  |  | 截图蒙版组件      |  | 历史面板组件      |                |  |
-|  |  | OverlayView.vue   |  | HistoryView.vue  |                |  |
+|  |  | OverlayView.tsx   |  | HistoryView.tsx  |                |  |
 |  |  +------------------+  +------------------+                |  |
 |  |                                                            |  |
 |  |  +------------------+  +------------------+                |  |
 |  |  | 文本翻译组件      |  | 控制栏组件        |                |  |
-|  |  | TextTranslateView |  | ControlBar.vue   |                |  |
+|  |  | TextTranslateView |  | ControlBar.tsx   |                |  |
 |  |  +------------------+  +------------------+                |  |
 |  |                                                            |  |
 |  |  +----------------------------------------------------+   |  |
-|  |  | Pinia 状态管理                                       |   |  |
+|  |  | Zustand 状态管理                                       |   |  |
 |  |  | - pinStore (贴图状态)  - configStore (配置状态)       |   |  |
 |  |  | - historyStore (历史状态) - i18n (国际化)             |   |  |
 |  |  +----------------------------------------------------+   |  |
@@ -183,11 +183,11 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 **职责**：UI 渲染、用户交互处理、前端状态管理。
 
 **关键设计决策**：
-- 每个贴图实例对应一个独立的 Tauri 窗口，窗口内运行独立的 Vue 组件实例。
+- 每个贴图实例对应一个独立的 Tauri 窗口，窗口内运行独立的 React 组件实例。
 - 截图蒙版使用全屏透明窗口实现，由前端绘制选区矩形。
 - 文本翻译窗口为无边框置顶窗口，屏幕下方居中显示。
-- 所有前端状态通过 Pinia store 管理，与后端通过 Tauri `invoke` 命令通信。
-- 界面语言切换通过 `vue-i18n` 实现，支持监听后端广播的语言变更事件。
+- 所有前端状态通过 Zustand store 管理，与后端通过 Tauri `invoke` 命令通信。
+- 界面语言切换通过 `react-i18next` 实现，支持监听后端广播的语言变更事件。
 
 #### 3.2.2 后端层（Core Layer）
 
@@ -271,7 +271,7 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 [window 模块] 创建全屏透明蒙版窗口
         |
         v
-[前端 OverlayView.vue] 用户拖拽框选区域
+[前端 OverlayView.tsx] 用户拖拽框选区域
         |
         +---> 用户按 Esc 或右键点击 ---> 销毁蒙版窗口（取消截图）
         |
@@ -288,7 +288,7 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 [window 模块] 创建贴图窗口(原位，无边框置顶)
         |
         v
-[前端 PinView.vue] 显示截图图像与控制栏
+[前端 PinView.tsx] 显示截图图像与控制栏
 ```
 
 ### 5.2 OCR 翻译数据流
@@ -326,7 +326,7 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 [后端 -> 前端] 返回 {blocks: [{original, translated, x, y, w, h}, ...], from_cache: false}
         |
         v
-[前端 PinView.vue] 在右侧译文面板渲染翻译结果
+[前端 PinView.tsx] 在右侧译文面板渲染翻译结果
         |
         v
 [history 模块] 异步保存翻译记录（含 target_language 和 blocks_json）
@@ -341,7 +341,7 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 [window 模块] 创建文本翻译窗口（屏幕下方居中）
         |
         v
-[前端 TextTranslateView.vue] 用户输入文本
+[前端 TextTranslateView.tsx] 用户输入文本
         |
         v
 用户点击翻译或按 Ctrl+Enter
@@ -364,7 +364,7 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 [后端 -> 前端] 返回 {translated_text, from_cache: false}
         |
         v
-[前端 TextTranslateView.vue] 显示译文
+[前端 TextTranslateView.tsx] 显示译文
         |
         v
 [history 模块] 异步保存翻译记录（无图片）
@@ -376,9 +376,9 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 用户在设置页面切换界面语言
         |
         v
-[前端 SettingsView.vue] onLanguageChange
+[前端 SettingsView.tsx] onLanguageChange
         |
-        +---> 立即更新 locale.value（前端即时生效）
+        +---> 立即调用 i18n.changeLanguage 切换语言（前端即时生效）
         |
         v
 [前端 -> 后端] invoke("save_config", {config})
@@ -414,7 +414,7 @@ SnapTranslate 采用 **Tauri 双层架构**：前端（WebView）负责 UI 渲�
 [history 模块] 查询最近 50 条记录
         |
         v
-[前端 HistoryView.vue] 列表展示
+[前端 HistoryView.tsx] 列表展示
 ```
 
 ---
