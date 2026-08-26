@@ -1,5 +1,4 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { create } from 'zustand'
 
 /** 翻译文本块 */
 export interface TranslatedBlock {
@@ -35,33 +34,51 @@ export interface PinState {
   showOriginal: boolean
 }
 
+/** 贴图 store 状态与 actions */
+interface PinStoreState {
+  pins: Map<string, PinState>
+  addPin: (pin: PinState) => void
+  removePin: (pinId: string) => void
+  getPin: (pinId: string) => PinState | undefined
+  updatePin: (pinId: string, updates: Partial<PinState>) => void
+}
+
 /** 贴图状态管理 */
-export const usePinStore = defineStore('pin', () => {
-  /** 所有贴图实例 */
-  const pins = ref<Map<string, PinState>>(new Map())
+export const usePinStore = create<PinStoreState>()((set, get) => ({
+  pins: new Map(),
 
   /** 添加贴图 */
-  function addPin(pin: PinState) {
-    pins.value.set(pin.pinId, pin)
-  }
+  addPin(pin) {
+    set((state) => {
+      const pins = new Map(state.pins)
+      pins.set(pin.pinId, pin)
+      return { pins }
+    })
+  },
 
   /** 移除贴图 */
-  function removePin(pinId: string) {
-    pins.value.delete(pinId)
-  }
+  removePin(pinId) {
+    set((state) => {
+      const pins = new Map(state.pins)
+      pins.delete(pinId)
+      return { pins }
+    })
+  },
 
   /** 获取贴图 */
-  function getPin(pinId: string): PinState | undefined {
-    return pins.value.get(pinId)
-  }
+  getPin(pinId) {
+    return get().pins.get(pinId)
+  },
 
   /** 更新贴图属性 */
-  function updatePin(pinId: string, updates: Partial<PinState>) {
-    const pin = pins.value.get(pinId)
-    if (pin) {
-      Object.assign(pin, updates)
-    }
-  }
-
-  return { pins, addPin, removePin, getPin, updatePin }
-})
+  updatePin(pinId, updates) {
+    set((state) => {
+      const pin = state.pins.get(pinId)
+      if (!pin) return state
+      const next = { ...pin, ...updates }
+      const pins = new Map(state.pins)
+      pins.set(pinId, next)
+      return { pins }
+    })
+  },
+}))
