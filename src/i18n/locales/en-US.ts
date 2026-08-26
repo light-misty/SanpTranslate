@@ -84,6 +84,7 @@ export default {
     autoStartEnabled: 'Auto start enabled',
     autoStartDisabled: 'Auto start disabled',
     autoStartFailed: 'Failed to set auto start',
+    autoStartDisabledInDev: 'Auto start is disabled in development mode',
     // Update settings
     updateConfig: 'Updates',
     currentVersion: 'Current Version',

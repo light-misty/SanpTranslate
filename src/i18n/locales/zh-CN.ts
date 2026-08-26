@@ -84,6 +84,7 @@ export default {
     autoStartEnabled: '已开启开机自启动',
     autoStartDisabled: '已关闭开机自启动',
     autoStartFailed: '设置开机自启动失败',
+    autoStartDisabledInDev: '开发环境禁止使用开机自启动',
     // 更新设置
     updateConfig: '更新设置',
     currentVersion: '当前版本',

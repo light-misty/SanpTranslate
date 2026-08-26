@@ -400,14 +400,24 @@ export default function SettingsView() {
 
   /** 切换开机自启动 */
   async function onToggleAutoStart(enabled: boolean) {
+    // 开发环境下禁止使用开机自启动
+    if (isDev) {
+      message.warning(t('settings.autoStartDisabledInDev'))
+      logger.warn(TAG, '开发环境禁止使用开机自启动')
+      // 不更新状态，保持滑块样式不变
+      return
+    }
+
     setAutoStartLoading(true)
     try {
       if (enabled) {
         await enableAutoStart()
+        setAutoStartEnabled(true)
         message.success(t('settings.autoStartEnabled'))
         logger.info(TAG, '开机自启动已开启')
       } else {
         await disableAutoStart()
+        setAutoStartEnabled(false)
         message.success(t('settings.autoStartDisabled'))
         logger.info(TAG, '开机自启动已关闭')
       }
