@@ -204,13 +204,19 @@ export default function SettingsView() {
     ;(async () => {
       setLoading(true)
       try {
+        // 开发环境下不查询开机自启动状态，保持默认关闭状态
+        // 这样可以避免开发环境下意外启用自启动后滑块显示为开启的问题
+        const autoStartPromise = isDev
+          ? Promise.resolve(false)
+          : isAutoStartEnabled().catch(() => false)
+
         // 并行加载配置、API 密钥、配置文件路径、日志目录路径和开机自启动状态
         const [, , path, logPath, autoStart] = await Promise.all([
           useConfigStore.getState().loadConfig(),
           useConfigStore.getState().loadApiKey(),
           getConfigPath(),
           getLogDir().catch(() => ''),
-          isAutoStartEnabled().catch(() => false),
+          autoStartPromise,
         ])
 
         if (!active) return
@@ -225,12 +231,12 @@ export default function SettingsView() {
         setConfigPath(path)
         setLogDir(logPath)
 
-        // 保存开机自启动状态
+        // 保存开机自启动状态（开发环境下始终为 false）
         setAutoStartEnabled(autoStart)
 
         initializedRef.current = true
 
-        logger.info(TAG, '设置页面初始化完成')
+        logger.info(TAG, `设置页面初始化完成，开发模式: ${isDev}`)
       } catch (err) {
         message.error(`${t('settings.loadFailed')}: ${err}`)
         logger.error(TAG, `加载配置失败: ${err}`)
