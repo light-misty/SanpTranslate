@@ -22,7 +22,7 @@ export default defineConfig({
   clearScreen: false,
   server: {
     port: 51896,
-    strictPort: true,
+    strictPort: false,
     host: host || false,
     hmr: host
       ? {

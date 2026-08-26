@@ -57,38 +57,63 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
     // 存入应用状态，供 reregister_hotkeys 更新
     app.manage(shortcuts);
 
-    app.global_shortcut()
-        .register(capture_shortcut)
-        .map_err(|e| {
-            #[cfg(target_os = "macos")]
-            log::warn!(
-                "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS)。\
-                 请前往 系统设置 > 隐私与安全性 > 辅助功能 添加本应用"
-            );
-            AppError::ConfigError(format!("注册截图快捷键失败: {}", e))
-        })?;
+    // 辅助函数：注册单个快捷键，如果已注册则先注销再重试
+    // 返回 Ok(true) 表示注册成功，Ok(false) 表示快捷键被占用但已跳过
+    let register_one = |shortcut: Shortcut, name: &str| -> Result<bool, AppError> {
+        match app.global_shortcut().register(shortcut) {
+            Ok(()) => {
+                log::info!("[HOTKEY] {} 快捷键注册成功", name);
+                Ok(true)
+            }
+            Err(e) => {
+                let err_str = e.to_string();
+                if err_str.contains("already registered") {
+                    log::warn!("[HOTKEY] {} 快捷键已被注册（可能被其他程序占用），尝试注销后重试...", name);
+                    // 先注销所有快捷键，等待一下让系统释放快捷键
+                    let _ = app.global_shortcut().unregister_all();
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    // 重试注册
+                    match app.global_shortcut().register(shortcut) {
+                        Ok(()) => {
+                            log::info!("[HOTKEY] {} 快捷键重新注册成功", name);
+                            Ok(true)
+                        }
+                        Err(e2) => {
+                            log::error!("[HOTKEY] {} 快捷键注册失败: {}。该快捷键可能已被其他程序占用，请在设置中更换快捷键。", name, e2);
+                            Ok(false)
+                        }
+                    }
+                } else {
+                    #[cfg(target_os = "macos")]
+                    log::warn!(
+                        "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS)。\
+                         请前往 系统设置 > 隐私与安全性 > 辅助功能 添加本应用"
+                    );
+                    Err(AppError::ConfigError(format!("注册 {} 快捷键失败: {}", name, e)))
+                }
+            }
+        }
+    };
 
-    app.global_shortcut()
-        .register(pin_clipboard_shortcut)
-        .map_err(|e| {
-            #[cfg(target_os = "macos")]
-            log::warn!(
-                "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS)。\
-                 请前往 系统设置 > 隐私与安全性 > 辅助功能 添加本应用"
-            );
-            AppError::ConfigError(format!("注册剪贴板贴图快捷键失败: {}", e))
-        })?;
+    let capture_ok = register_one(capture_shortcut, "截图")?;
+    let pin_ok = register_one(pin_clipboard_shortcut, "剪贴板贴图")?;
+    let text_ok = register_one(text_translate_shortcut, "文本翻译")?;
 
-    app.global_shortcut()
-        .register(text_translate_shortcut)
-        .map_err(|e| {
-            #[cfg(target_os = "macos")]
-            log::warn!(
-                "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS)。\
-                 请前往 系统设置 > 隐私与安全性 > 辅助功能 添加本应用"
-            );
-            AppError::ConfigError(format!("注册文本翻译快捷键失败: {}", e))
-        })?;
+    // 检查是否有快捷键注册失败
+    let mut failed = Vec::new();
+    if !capture_ok { failed.push("截图"); }
+    if !pin_ok { failed.push("剪贴板贴图"); }
+    if !text_ok { failed.push("文本翻译"); }
+    if !failed.is_empty() {
+        log::warn!("[HOTKEY] 以下快捷键注册失败（可能已被其他程序占用）: {}。用户可在设置页面重新配置。", failed.join(", "));
+    }
+
+    log::info!(
+        "[HOTKEY] 快捷键注册完成: 截图={}, 剪贴板贴图={}, 文本翻译={}",
+        config.capture,
+        config.pin_clipboard,
+        config.text_translate
+    );
 
     Ok(())
 }
