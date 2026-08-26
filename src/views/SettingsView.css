@@ -1,18 +1,68 @@
+/* 设置页面主容器 */
 .settings-container {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
-  overflow-y: auto;
-  box-sizing: border-box;
   background-color: #101014;
 }
 
+/* 导航栏样式 */
+.settings-nav-bar {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0 16px;
+  background-color: #1a1a1f;
+  border-bottom: 1px solid #2a2a2f;
+  overflow-x: auto;
+}
+
+/* 隐藏导航栏滚动条 */
+.settings-nav-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 导航按钮样式 */
+.settings-nav-item {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #a0a0a0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+/* 导航按钮悬停效果 */
+.settings-nav-item:hover {
+  color: #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 导航按钮选中状态 */
+.settings-nav-item.active {
+  color: #1677ff;
+  border-bottom-color: #1677ff;
+  background-color: rgba(22, 119, 255, 0.08);
+}
+
+/* 内容区域 */
+.settings-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
 /* WebKit浏览器隐藏滚动条 */
-.settings-container::-webkit-scrollbar {
+.settings-content::-webkit-scrollbar {
   display: none;
 }
 
 /* 表单项之间增加间距（对应原 :deep(.n-form-item)） */
-.settings-container .ant-form-item {
+.settings-content .ant-form-item {
   margin-bottom: 12px;
 }
 
