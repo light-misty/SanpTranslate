@@ -1,0 +1,24 @@
+.settings-container {
+  padding: 16px;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background-color: #101014;
+}
+
+/* WebKit浏览器隐藏滚动条 */
+.settings-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* 表单项之间增加间距（对应原 :deep(.n-form-item)） */
+.settings-container .ant-form-item {
+  margin-bottom: 12px;
+}
+
+/* 路径文字可选中，鼠标变为 I 形 */
+.selectable-path {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
