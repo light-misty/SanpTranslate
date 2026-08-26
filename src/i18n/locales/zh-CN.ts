@@ -31,6 +31,13 @@ export default {
   // 设置页面
   settings: {
     title: '设置',
+    // 导航栏
+    navGeneral: '通用',
+    navApi: 'API',
+    navTranslate: '翻译',
+    navShortcut: '快捷键',
+    navUpdate: '更新',
+    navAbout: '关于',
     languageConfig: '界面语言',
     generalConfig: '通用设置',
     language: '语言',

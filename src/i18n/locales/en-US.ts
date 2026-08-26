@@ -31,6 +31,13 @@ export default {
   // Settings
   settings: {
     title: 'Settings',
+    // Navigation
+    navGeneral: 'General',
+    navApi: 'API',
+    navTranslate: 'Translate',
+    navShortcut: 'Shortcuts',
+    navUpdate: 'Updates',
+    navAbout: 'About',
     languageConfig: 'Language',
     generalConfig: 'General',
     language: 'Language',

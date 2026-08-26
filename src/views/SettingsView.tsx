@@ -11,6 +11,25 @@ import './SettingsView.css'
 
 const TAG = 'SettingsView'
 
+/** 导航页签类型 */
+type NavTab = 'general' | 'api' | 'translate' | 'shortcut' | 'update' | 'about'
+
+/** 导航页签配置 */
+interface NavTabConfig {
+  key: NavTab
+  labelKey: string
+}
+
+/** 导航页签列表 */
+const NAV_TABS: NavTabConfig[] = [
+  { key: 'general', labelKey: 'settings.navGeneral' },
+  { key: 'api', labelKey: 'settings.navApi' },
+  { key: 'translate', labelKey: 'settings.navTranslate' },
+  { key: 'shortcut', labelKey: 'settings.navShortcut' },
+  { key: 'update', labelKey: 'settings.navUpdate' },
+  { key: 'about', labelKey: 'settings.navAbout' },
+]
+
 /** 扁平化表单数据结构，方便受控绑定 */
 interface FormData {
   api_provider: string
@@ -57,6 +76,9 @@ function mapTextType(tp: 'success' | 'error' | 'warning' | 'info'): 'success' | 
 export default function SettingsView() {
   const { t, i18n } = useTranslation()
   const { message, modal } = AntdApp.useApp()
+
+  // 当前选中的导航页签
+  const [activeTab, setActiveTab] = useState<NavTab>('general')
 
   // 表单数据（使用单一 state，提供 updateField 辅助）
   const [form, setForm] = useState<FormData>(DEFAULT_FORM)
@@ -539,11 +561,26 @@ export default function SettingsView() {
   // 更新状态文字颜色（antd Typography.Text 支持的 type）
   const textType = mapTextType(updateStatusType)
 
-  return (
-    <div className="settings-container">
-      <Spin spinning={loading}>
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          {/* 界面语言设置区域 */}
+  /** 渲染导航栏 */
+  const renderNavBar = () => (
+    <div className="settings-nav-bar">
+      {NAV_TABS.map((tab) => (
+        <button
+          key={tab.key}
+          className={`settings-nav-item ${activeTab === tab.key ? 'active' : ''}`}
+          onClick={() => setActiveTab(tab.key)}
+        >
+          {t(tab.labelKey)}
+        </button>
+      ))}
+    </div>
+  )
+
+  /** 根据当前选中的页签渲染对应内容 */
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'general':
+        return (
           <Card title={t('settings.languageConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
               <Form.Item label={t('settings.language')}>
@@ -551,21 +588,10 @@ export default function SettingsView() {
               </Form.Item>
             </Form>
           </Card>
+        )
 
-          {/* 通用设置区域 */}
-          <Card title={t('settings.generalConfig')} size="small">
-            <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
-              <Form.Item label={t('settings.autoStart')}>
-                <Switch
-                  checked={autoStartEnabled}
-                  loading={autoStartLoading}
-                  onChange={onToggleAutoStart}
-                />
-              </Form.Item>
-            </Form>
-          </Card>
-
-          {/* API 配置区域 */}
+      case 'api':
+        return (
           <Card
             title={t('settings.apiConfig')}
             size="small"
@@ -634,8 +660,10 @@ export default function SettingsView() {
               </Form.Item>
             </Form>
           </Card>
+        )
 
-          {/* 翻译配置区域 */}
+      case 'translate':
+        return (
           <Card title={t('settings.translateConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
               <Form.Item label={t('settings.ocrLanguage')}>
@@ -654,8 +682,10 @@ export default function SettingsView() {
               </Form.Item>
             </Form>
           </Card>
+        )
 
-          {/* 快捷键配置区域 */}
+      case 'shortcut':
+        return (
           <Card title={t('settings.shortcutConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
               <Form.Item label={t('settings.captureShortcut')}>
@@ -686,8 +716,10 @@ export default function SettingsView() {
               </Form.Item>
             </Form>
           </Card>
+        )
 
-          {/* 更新设置区域 */}
+      case 'update':
+        return (
           <Card title={t('settings.updateConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
               {/* 当前版本 */}
@@ -739,47 +771,82 @@ export default function SettingsView() {
               )}
             </Form>
           </Card>
+        )
 
-          {/* 配置文件路径提示 */}
-          <Card
-            title={t('settings.configFilePath')}
-            size="small"
-            extra={
-              <Button size="small" onClick={openConfigFolder} disabled={!configPath}>
-                {t('settings.openFolder')}
-              </Button>
-            }
-          >
-            <Typography.Text
-              copyable
-              code
-              className="selectable-path"
-              style={{ fontSize: 12, wordBreak: 'break-all' }}
-            >
-              {configPath || t('common.loading')}
-            </Typography.Text>
-          </Card>
+      case 'about':
+        return (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            {/* 开机自启动设置 */}
+            <Card title={t('settings.generalConfig')} size="small">
+              <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
+                <Form.Item label={t('settings.autoStart')}>
+                  <Switch
+                    checked={autoStartEnabled}
+                    loading={autoStartLoading}
+                    onChange={onToggleAutoStart}
+                  />
+                </Form.Item>
+              </Form>
+            </Card>
 
-          {/* 日志文件路径提示 */}
-          <Card
-            title={t('settings.logFilePath')}
-            size="small"
-            extra={
-              <Button size="small" onClick={openLogFolder} disabled={!logDir}>
-                {t('settings.openFolder')}
-              </Button>
-            }
-          >
-            <Typography.Text
-              copyable
-              code
-              className="selectable-path"
-              style={{ fontSize: 12, wordBreak: 'break-all' }}
+            {/* 配置文件路径提示 */}
+            <Card
+              title={t('settings.configFilePath')}
+              size="small"
+              extra={
+                <Button size="small" onClick={openConfigFolder} disabled={!configPath}>
+                  {t('settings.openFolder')}
+                </Button>
+              }
             >
-              {logDir || t('common.loading')}
-            </Typography.Text>
-          </Card>
-        </Space>
+              <Typography.Text
+                copyable
+                code
+                className="selectable-path"
+                style={{ fontSize: 12, wordBreak: 'break-all' }}
+              >
+                {configPath || t('common.loading')}
+              </Typography.Text>
+            </Card>
+
+            {/* 日志文件路径提示 */}
+            <Card
+              title={t('settings.logFilePath')}
+              size="small"
+              extra={
+                <Button size="small" onClick={openLogFolder} disabled={!logDir}>
+                  {t('settings.openFolder')}
+                </Button>
+              }
+            >
+              <Typography.Text
+                copyable
+                code
+                className="selectable-path"
+                style={{ fontSize: 12, wordBreak: 'break-all' }}
+              >
+                {logDir || t('common.loading')}
+              </Typography.Text>
+            </Card>
+          </Space>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="settings-container">
+      <Spin spinning={loading}>
+        {/* 导航栏 */}
+        {renderNavBar()}
+        {/* 内容区域 */}
+        <div className="settings-content">
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            {renderContent()}
+          </Space>
+        </div>
       </Spin>
     </div>
   )
