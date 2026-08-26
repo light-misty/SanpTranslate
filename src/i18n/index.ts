@@ -1,15 +1,24 @@
-import { createI18n } from "vue-i18n";
-import zhCN from "./locales/zh-CN";
-import enUS from "./locales/en-US";
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+import zhCN from './locales/zh-CN'
+import enUS from './locales/en-US'
 
-const i18n = createI18n({
-  legacy: false,
-  locale: navigator.language.startsWith("zh") ? "zh-CN" : "en-US",
-  fallbackLocale: "en-US",
-  messages: {
-    "zh-CN": zhCN,
-    "en-US": enUS,
+/** 跟随系统默认语言 */
+const initialLanguage = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
+
+i18n.use(initReactI18next).init({
+  resources: {
+    'zh-CN': { translation: zhCN },
+    'en-US': { translation: enUS },
   },
-});
+  lng: initialLanguage,
+  fallbackLng: 'en-US',
+  // 兼容语言包中 vue-i18n 的 {param} 占位符语法
+  interpolation: {
+    prefix: '{',
+    suffix: '}',
+    escapeValue: false,
+  },
+})
 
-export default i18n;
+export default i18n
