@@ -566,11 +566,19 @@ export default function SettingsView() {
           <Card title={t('settings.generalConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
               <Form.Item label={t('settings.autoStart')}>
-                <Switch
-                  checked={autoStartEnabled}
-                  loading={autoStartLoading}
-                  onChange={onToggleAutoStart}
-                />
+                <Space align="center" size={8}>
+                  <Switch
+                    checked={autoStartEnabled}
+                    loading={autoStartLoading}
+                    onChange={onToggleAutoStart}
+                  />
+                  {/* 开发模式提示 */}
+                  {isDev && (
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {t('settings.autoStartDisabledInDev')}
+                    </Typography.Text>
+                  )}
+                </Space>
               </Form.Item>
             </Form>
           </Card>
