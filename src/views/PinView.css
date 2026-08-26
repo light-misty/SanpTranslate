@@ -1,0 +1,118 @@
+.pin-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  background: transparent;
+  user-select: none;
+  overflow: hidden;
+}
+
+.main-layout {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+.core-stack {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+}
+
+.image-area {
+  flex: 0 0 auto;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.pin-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+/* 译文面板 */
+.translation-panel {
+  background: rgba(30, 30, 30, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* 译文内容可滚动容器 */
+.translation-items-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 8px 16px;
+  min-height: 0;
+}
+
+.translation-item {
+  margin-bottom: 4px;
+}
+
+.translation-text {
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* 翻译块之间的分隔线 */
+.translation-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 10px 0;
+}
+
+/* 译文面板高度拉伸手柄 */
+.panel-resize-handle {
+  flex-shrink: 0;
+  height: 10px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 手柄上的三杠指示器 */
+.panel-resize-handle::before {
+  content: '';
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.15s;
+}
+
+.panel-resize-handle:hover::before,
+.panel-resize-handle:active::before {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 译文面板滚动条样式 */
+.translation-items-container::-webkit-scrollbar {
+  width: 4px;
+}
+.translation-items-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.translation-items-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
