@@ -1,0 +1,54 @@
+.shortcut-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  min-height: 34px;
+  min-width: 180px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  user-select: none;
+}
+
+.shortcut-input:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.shortcut-input.recording {
+  border-color: #63e2b7;
+  box-shadow: 0 0 0 2px rgba(99, 226, 183, 0.2);
+}
+
+.shortcut-value {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  letter-spacing: 0.5px;
+}
+
+.shortcut-placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+}
+
+.shortcut-hint {
+  color: #63e2b7;
+  font-size: 13px;
+}
+
+.recording-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #63e2b7;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
