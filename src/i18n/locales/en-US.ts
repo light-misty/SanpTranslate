@@ -6,9 +6,7 @@ export default {
     delete: 'Delete',
     copy: 'Copy',
     close: 'Close',
-    save: 'Save',
     loading: 'Loading...',
-    success: 'Success',
     error: 'Error',
   },
 
@@ -23,11 +21,6 @@ export default {
     showOriginal: 'Show Original',
     showTranslation: 'Show Translation',
     cacheHit: 'From cache',
-  },
-
-  // Overlay
-  overlay: {
-    title: 'SnapTranslate - Screenshot Overlay',
   },
 
   // Pin window
@@ -58,7 +51,6 @@ export default {
     apiBaseUrl: 'API Base URL',
     apiKey: 'API Key',
     apiKeyPlaceholder: 'Enter API key',
-    apiKeyHidden: 'Key saved',
     model: 'Model',
     translateConfig: 'Translation',
     targetLanguage: 'Target Language',
@@ -72,16 +64,12 @@ export default {
     clickToSet: 'Click to set shortcut',
     restoreDefaults: 'Restore Defaults',
     shortcutsRestored: 'Shortcuts restored to defaults',
-    save: 'Save',
     testConnection: 'Test Connection',
-    configSaved: 'Configuration saved',
     saveFailed: 'Save failed',
     loadFailed: 'Failed to load configuration',
     fillApiUrl: 'Please enter API URL first',
     fillModel: 'Please enter model name first',
     fillApiKey: 'Please configure API key first',
-    connectionSuccess: 'Connection successful',
-    connectionFailed: 'Connection failed',
     configFilePath: 'Config File Path',
     logFilePath: 'Log File Path',
     openFolder: 'Open',
@@ -137,7 +125,6 @@ export default {
     detail: 'Translation Detail',
     original: 'Original',
     translation: 'Translation',
-    copyTranslation: 'Copy Translation',
     confirmDelete: 'Are you sure you want to delete this record?',
     confirmClearAll: 'Are you sure you want to clear all history? This action cannot be undone.',
     deleted: 'Deleted',
@@ -150,16 +137,6 @@ export default {
     copyFailed: 'Copy failed',
   },
 
-  // Tray menu
-  tray: {
-    captureTranslate: 'Capture & Translate',
-    pinFromClipboard: 'Pin from Clipboard',
-    textTranslate: 'Text Translate',
-    history: 'Translation History',
-    settings: 'Settings',
-    quit: 'Quit',
-  },
-
   // Text translate
   textTranslate: {
     title: 'Text Translate',
@@ -170,16 +147,5 @@ export default {
     translating: 'Translating...',
     copyTranslation: 'Copy Translation',
     targetLanguage: 'Target Language',
-  },
-
-  // Error messages
-  error: {
-    apiKeyNotConfigured: 'API key not configured. Please set it in Settings.',
-    apiKeyInvalid: 'Invalid or expired API key',
-    apiKeyNoPermission: 'No permission to access the API. Check your key permissions.',
-    apiUrlNotFound: 'API URL not found. Please check the URL.',
-    rateLimited: 'Too many requests. Please try again later.',
-    serverError: 'Server error. Please try again later.',
-    noCachedScreenshot: 'No cached screenshot data. Please capture again.',
   },
 }

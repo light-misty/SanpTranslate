@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import type { MouseEvent as ReactMouseEvent, SyntheticEvent } from 'react'
 import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { LogicalSize, LogicalPosition } from '@tauri-apps/api/dpi'
@@ -22,13 +21,8 @@ const PIN_PADDING = 14
 
 /** 贴图窗口视图：展示截图、译文面板与操作控制栏（React 版本，行为与 PinView.vue 逐项等价） */
 export default function PinView() {
-  const { t } = useTranslation()
-  // t 当前本视图无直接界面文案；保留该引用以订阅 i18n 语言变更触发的重渲染
-  void t
-
   const [imageDataUrl, setImageDataUrl] = useState<string>('')
   const [imageLoaded, setImageLoaded] = useState(false)
-  const [pinId, setPinId] = useState<string>('')
   const [translateStatus, setTranslateStatus] = useState<'idle' | 'translating' | 'done' | 'error'>('idle')
   const [showOriginal, setShowOriginal] = useState(false)
   const [hasTranslation, setHasTranslation] = useState(false)
@@ -289,7 +283,6 @@ export default function PinView() {
 
     const currentWindow = getCurrentWindow()
     const windowId = currentWindow.label
-    setPinId(windowId)
     logger.info(TAG, `PinView onMounted, windowLabel=${windowId}`)
 
     ;(async () => {
@@ -534,7 +527,6 @@ export default function PinView() {
   return (
     <div
       className="pin-container"
-      data-pin-id={pinId}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
