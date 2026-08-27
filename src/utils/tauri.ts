@@ -266,3 +266,8 @@ export async function isAutoStartEnabled(): Promise<boolean> {
 export async function restartApp(): Promise<void> {
   return invoke('restart_app')
 }
+
+/** 检测快捷键是否已被其他程序占用，返回 true 表示已被占用 */
+export async function checkShortcutConflict(shortcut: string): Promise<boolean> {
+  return invoke<boolean>('check_shortcut_conflict', { shortcut })
+}

@@ -52,3 +52,16 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+.shortcut-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shortcut-occupied-warning {
+  color: #e6a817;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

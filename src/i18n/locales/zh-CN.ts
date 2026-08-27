@@ -71,6 +71,7 @@ export default {
     clickToSet: '点击设置快捷键',
     restoreDefaults: '恢复默认',
     shortcutsRestored: '快捷键已恢复默认',
+    shortcutOccupied: '已被其他程序占用',
     testConnection: '测试连接',
     saveFailed: '保存失败',
     loadFailed: '加载配置失败',

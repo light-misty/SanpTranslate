@@ -114,7 +114,8 @@ pub fn run() {
             commands::delete_history,
             commands::clear_history,
             commands::restart_app,
-            commands::reveal_in_explorer
+            commands::reveal_in_explorer,
+            commands::check_shortcut_conflict
         ])
         .setup(|app| {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）

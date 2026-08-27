@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { checkShortcutConflict } from '@/utils/tauri'
 import './ShortcutInput.css'
 
 /** 快捷键输入组件属性 */
@@ -84,10 +85,35 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
   const { t } = useTranslation()
   const inputRef = useRef<HTMLDivElement>(null)
   const [isRecording, setIsRecording] = useState(false)
+  const [isOccupied, setIsOccupied] = useState(false)
   const pressedModifiers = useRef<Set<string>>(new Set())
 
   // 显示值：优先显示格式化后的快捷键，否则为占位提示
   const displayValue = value ? formatShortcut(value) : ''
+
+  // 检测快捷键是否被占用
+  useEffect(() => {
+    if (!value) {
+      setIsOccupied(false)
+      return
+    }
+    let cancelled = false
+    checkShortcutConflict(value)
+      .then((occupied) => {
+        if (!cancelled) {
+          setIsOccupied(occupied)
+        }
+      })
+      .catch(() => {
+        // 检测失败时不显示警告
+        if (!cancelled) {
+          setIsOccupied(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [value])
 
   /** 停止录制并清空按键状态 */
   function stopRecording() {
@@ -171,23 +197,28 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
   }, [])
 
   return (
-    <div
-      tabIndex={0}
-      className={isRecording ? 'shortcut-input recording' : 'shortcut-input'}
-      onKeyDown={onKeyDown}
-      onKeyUp={onKeyUp}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      ref={inputRef}
-    >
-      {isRecording ? (
-        <span className="shortcut-hint">{t('settings.pressShortcut')}</span>
-      ) : displayValue ? (
-        <span className="shortcut-value">{displayValue}</span>
-      ) : (
-        <span className="shortcut-placeholder">{placeholder}</span>
+    <div className="shortcut-input-wrapper">
+      <div
+        tabIndex={0}
+        className={isRecording ? 'shortcut-input recording' : 'shortcut-input'}
+        onKeyDown={onKeyDown}
+        onKeyUp={onKeyUp}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        ref={inputRef}
+      >
+        {isRecording ? (
+          <span className="shortcut-hint">{t('settings.pressShortcut')}</span>
+        ) : displayValue ? (
+          <span className="shortcut-value">{displayValue}</span>
+        ) : (
+          <span className="shortcut-placeholder">{placeholder}</span>
+        )}
+        {isRecording && <span className="recording-dot"></span>}
+      </div>
+      {isOccupied && !isRecording && (
+        <span className="shortcut-occupied-warning">{t('settings.shortcutOccupied')}</span>
       )}
-      {isRecording && <span className="recording-dot"></span>}
     </div>
   )
 }

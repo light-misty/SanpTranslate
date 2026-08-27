@@ -71,6 +71,7 @@ export default {
     clickToSet: 'Click to set shortcut',
     restoreDefaults: 'Restore Defaults',
     shortcutsRestored: 'Shortcuts restored to defaults',
+    shortcutOccupied: 'Already in use by another app',
     testConnection: 'Test Connection',
     saveFailed: 'Save failed',
     loadFailed: 'Failed to load configuration',
