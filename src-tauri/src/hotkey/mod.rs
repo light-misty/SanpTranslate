@@ -175,7 +175,6 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
 }
 
 /// 重新注册快捷键（配置变更后调用）
-/// override_mode 为 true 时，会多次尝试强制注册快捷键
 pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -> Result<ShortcutRegistrationResult, AppError> {
     let new_capture = parse_shortcut(&new_config.capture)?;
     let new_pin = parse_shortcut(&new_config.pin_clipboard)?;
