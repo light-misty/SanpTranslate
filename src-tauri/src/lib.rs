@@ -202,9 +202,9 @@ pub fn run() {
                 let result = hotkey::register_hotkeys(app.handle(), &app_config.shortcuts)?;
                 if result.has_failure {
                     log::warn!("[SETUP] 部分快捷键注册失败，用户可在设置页面查看");
-                    // 将结果存入应用状态，供前端查询
-                    app.manage(std::sync::Mutex::new(result));
                 }
+                // 始终将结果存入应用状态，供 check_shortcuts_status 查询
+                app.manage(std::sync::Mutex::new(result));
             }
 
             // 自动更新检查（仅 release 模式且开启了自动更新时执行）

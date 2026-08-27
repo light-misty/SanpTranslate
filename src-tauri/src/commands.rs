@@ -24,6 +24,14 @@ pub fn save_config(app: tauri::AppHandle, config: AppConfig) -> Result<crate::ho
             e.to_string()
         })?;
 
+        // 将最新注册结果存入应用状态，供 check_shortcuts_status 查询
+        {
+            let state = app.state::<std::sync::Mutex<crate::hotkey::ShortcutRegistrationResult>>();
+            if let Ok(mut guard) = state.lock() {
+                *guard = result.clone();
+            }
+        }
+
         // 更新托盘菜单以反映快捷键和语言变更
         if let Err(e) = crate::tray::update_tray_menu(&app, &config.shortcuts, &config.language) {
             log::warn!("更新托盘菜单失败: {}", e);
