@@ -1,6 +1,10 @@
 <h1 align="center">SnapTranslate</h1>
 
 <p align="center">
+  <img src="docs/icon.png" alt="SnapTranslate Icon" width="128" />
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Tauri-2.x-FFC131" alt="Tauri 2.x" />
   <img src="https://img.shields.io/static/v1?label=Rust&message=2024&color=orange" alt="Rust 2024" />
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React 18" />
