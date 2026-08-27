@@ -1,5 +1,16 @@
 @import './variables.css';
 
+/* 全局隐藏滚动条：WebKit 浏览器（Chrome、Edge、Safari） */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* 全局隐藏滚动条：Firefox 和 IE/Edge */
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 * {
   margin: 0;
   padding: 0;
