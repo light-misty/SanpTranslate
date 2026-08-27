@@ -14,6 +14,7 @@ mod window;
 
 use std::sync::Mutex;
 use tauri::Manager;
+use tauri_plugin_autostart::ManagerExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -119,6 +120,29 @@ pub fn run() {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）
             #[cfg(desktop)]
             app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+
+            // 开发环境下自动禁用开机自启动，防止开发环境注册自启动项
+            // 如果之前意外启用了自启动，启动时会自动清除
+            #[cfg(debug_assertions)]
+            {
+                let autostart_manager = app.autolaunch();
+                match autostart_manager.is_enabled() {
+                    Ok(true) => {
+                        log::warn!("[DEV] 检测到开发模式下自启动已启用，正在自动禁用...");
+                        if let Err(e) = autostart_manager.disable() {
+                            log::error!("[DEV] 禁用开发模式自启动失败: {}", e);
+                        } else {
+                            log::info!("[DEV] 已成功禁用开发模式自启动");
+                        }
+                    }
+                    Ok(false) => {
+                        log::debug!("[DEV] 开发模式下自启动未启用，无需处理");
+                    }
+                    Err(e) => {
+                        log::warn!("[DEV] 检查开发模式自启动状态失败: {}", e);
+                    }
+                }
+            }
 
             let config_manager = config::ConfigManager::new(app.handle())?;
             let app_config = config_manager.load()?;
