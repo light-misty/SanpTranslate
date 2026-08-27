@@ -19,13 +19,7 @@ pub fn save_config(app: tauri::AppHandle, config: AppConfig) -> Result<crate::ho
     // 重新注册全局快捷键（注销旧的，注册新的）
     #[cfg(desktop)]
     {
-        // 根据是否启用覆盖模式选择不同的注册策略
-        let result = if config.override_shortcut {
-            log::info!("[CMD] 使用覆盖模式注册快捷键");
-            crate::hotkey::force_register_hotkeys(&app, &config.shortcuts)
-        } else {
-            crate::hotkey::reregister_hotkeys(&app, &config.shortcuts)
-        }.map_err(|e| {
+        let result = crate::hotkey::reregister_hotkeys(&app, &config.shortcuts).map_err(|e| {
             log::error!("重新注册快捷键失败: {}", e);
             e.to_string()
         })?;

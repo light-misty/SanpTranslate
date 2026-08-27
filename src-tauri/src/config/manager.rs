@@ -46,8 +46,6 @@ pub struct AppConfig {
     pub ocr_language: String,
     /// 是否开启自动更新
     pub auto_update: bool,
-    /// 是否启用覆盖快捷键模式（强制覆盖其他程序的快捷键占用）
-    pub override_shortcut: bool,
     /// 快捷键配置
     pub shortcuts: ShortcutConfig,
 }
@@ -62,7 +60,6 @@ impl Default for AppConfig {
             language: "auto".to_string(),
             ocr_language: "auto".to_string(),
             auto_update: true,
-            override_shortcut: false,
             shortcuts: ShortcutConfig::default(),
         }
     }

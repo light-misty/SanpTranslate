@@ -40,7 +40,6 @@ interface FormData {
   language: string
   ocr_language: string
   auto_update: boolean
-  override_shortcut: boolean
   shortcuts_capture: string
   shortcuts_pin_clipboard: string
   shortcuts_text_translate: string
@@ -61,7 +60,6 @@ const DEFAULT_FORM: FormData = {
   language: 'auto',
   ocr_language: 'auto',
   auto_update: true,
-  override_shortcut: false,
   shortcuts_capture: '',
   shortcuts_pin_clipboard: '',
   shortcuts_text_translate: '',
@@ -197,7 +195,6 @@ export default function SettingsView() {
       language: config.language || 'auto',
       ocr_language: config.ocr_language || 'auto',
       auto_update: config.auto_update !== undefined ? config.auto_update : true,
-      override_shortcut: config.override_shortcut || false,
       shortcuts_capture: config.shortcuts?.capture ?? '',
       shortcuts_pin_clipboard: config.shortcuts?.pin_clipboard ?? '',
       shortcuts_text_translate: config.shortcuts?.text_translate ?? '',
@@ -289,7 +286,6 @@ export default function SettingsView() {
         language: f.language,
         ocr_language: f.ocr_language,
         auto_update: f.auto_update,
-        override_shortcut: f.override_shortcut,
         shortcuts: {
           capture: f.shortcuts_capture.trim(),
           pin_clipboard: f.shortcuts_pin_clipboard.trim(),
@@ -339,7 +335,6 @@ export default function SettingsView() {
     form.target_language,
     form.ocr_language,
     form.auto_update,
-    form.override_shortcut,
     form.shortcuts_capture,
     form.shortcuts_pin_clipboard,
     form.shortcuts_text_translate,
@@ -749,28 +744,6 @@ export default function SettingsView() {
         return (
           <Card title={t('settings.shortcutConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
-              {/* 覆盖快捷键开关 */}
-              <Form.Item label={t('settings.overrideShortcut')}>
-                <Space align="center" size={8}>
-                  <Switch
-                    checked={form.override_shortcut}
-                    onChange={(v: boolean) => updateField('override_shortcut', v)}
-                  />
-                  <Tooltip title={t('settings.overrideShortcutDesc')}>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      width={16}
-                      height={16}
-                      color="#888"
-                    >
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-                    </svg>
-                  </Tooltip>
-                </Space>
-              </Form.Item>
-
               {/* 快捷键占用状态提示 */}
               {shortcutStatuses.some((s) => s.occupied) && (
                 <Form.Item label="">

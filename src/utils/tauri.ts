@@ -17,8 +17,6 @@ export interface AppConfig {
   ocr_language: string
   /** 是否开启自动更新 */
   auto_update: boolean
-  /** 是否启用覆盖快捷键模式（强制覆盖其他程序的快捷键占用） */
-  override_shortcut: boolean
   /** 快捷键配置 */
   shortcuts: ShortcutConfig
 }

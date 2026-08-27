@@ -71,8 +71,6 @@ export default {
     clickToSet: 'Click to set shortcut',
     restoreDefaults: 'Restore Defaults',
     shortcutsRestored: 'Shortcuts restored to defaults',
-    overrideShortcut: 'Override Shortcuts',
-    overrideShortcutDesc: 'When enabled, forcefully override hotkey registrations from other apps to ensure this app\'s shortcuts take priority',
     shortcutOccupied: 'This shortcut is occupied by another app',
     shortcutAvailable: 'Shortcut available',
     shortcutChecking: 'Checking...',

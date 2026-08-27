@@ -71,8 +71,6 @@ export default {
     clickToSet: '点击设置快捷键',
     restoreDefaults: '恢复默认',
     shortcutsRestored: '快捷键已恢复默认',
-    overrideShortcut: '覆盖快捷键',
-    overrideShortcutDesc: '启用后将强制覆盖其他程序的快捷键占用，确保本应用的快捷键优先触发',
     shortcutOccupied: '该快捷键被其他程序占用',
     shortcutAvailable: '快捷键可用',
     shortcutChecking: '检测中...',
