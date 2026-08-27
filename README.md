@@ -57,13 +57,14 @@ Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):
 - **Clipboard Pin** — `Ctrl+Alt+P` paste clipboard image for translation
 - **Text Translation** — `Ctrl+Alt+M` opens text translation window, `Ctrl+Enter` for quick translate
 - **Local OCR** — Built-in Tesseract offline engine, supports Chinese / English / Japanese with auto-detection
-- **AI Translation** — OpenAI-compatible API, bring your own model and key
+- **AI Translation** — OpenAI-compatible / Anthropic / Gemini API, bring your own model and key
 - **Translation Cache** — Repeated content auto-matches history, skips API call for instant results
 - **Pin Window** — Screenshot fixed at original position, right-side translation panel with height adjustment
 - **Original/Translation Toggle** — One-click switch between original text and translation
 - **One-Click Copy** — Copy original or translated text to clipboard
 - **Translation History** — All records saved to local SQLite, supports view / copy / delete / clear
-- **Bilingual UI** — Simplified Chinese / English, auto-detect system language, instant switching
+- **Multi-language UI** — Simplified Chinese / English interface, supports translating to Chinese / English / Japanese / Korean / French / German / Spanish / Russian, auto-detect system language, instant switching
+- **Shortcut Conflict Detection** — Automatically detect and warn when shortcuts are occupied by other applications
 - **Privacy First** — Screenshots processed locally, only translation requests to your own API — no telemetry
 - **Auto Update** — Silent check, download, and install on startup
 - **Auto Start** — Optional boot launch
