@@ -7,6 +7,7 @@ mod history;
 mod hotkey;
 mod logging;
 mod ocr;
+mod quickfill;
 mod translate;
 mod tray;
 mod update;
@@ -82,6 +83,7 @@ pub fn run() {
                 .with_handler(move |app, shortcut, event| {
                     if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         hotkey::handle_shortcut_event(app, shortcut);
+                        quickfill::handle_quick_fill_shortcut(app, shortcut);
                     }
                 })
                 .build(),
@@ -89,6 +91,7 @@ pub fn run() {
         .manage(Mutex::new(window::PinImageStore::default()))
         .manage(Mutex::new(window::CachedScreenStore::default()))
         .manage(Mutex::new(tray::TrayState::default()))
+        .manage(std::sync::Arc::new(Mutex::new(quickfill::QuickFillShortcuts::default())))
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::save_config,
@@ -115,7 +118,8 @@ pub fn run() {
             commands::clear_history,
             commands::restart_app,
             commands::reveal_in_explorer,
-            commands::check_shortcut_conflict
+            commands::check_shortcut_conflict,
+            commands::save_quick_fills
         ])
         .setup(|app| {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）
@@ -198,6 +202,10 @@ pub fn run() {
 
             #[cfg(desktop)]
             hotkey::register_hotkeys(app.handle(), &app_config.shortcuts)?;
+
+            // 注册快捷填充快捷键
+            #[cfg(desktop)]
+            quickfill::register_quick_fill_shortcuts(app.handle(), &app_config.quick_fills)?;
 
             // 自动更新检查（仅 release 模式且开启了自动更新时执行）
             #[cfg(all(desktop, not(debug_assertions)))]

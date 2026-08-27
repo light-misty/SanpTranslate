@@ -1,4 +1,4 @@
-use crate::config::{AppConfig, ConfigManager};
+use crate::config::{AppConfig, ConfigManager, QuickFillEntry};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use std::error::Error;
@@ -894,6 +894,35 @@ fn parse_key_code_internal(key: &str) -> Result<tauri_plugin_global_shortcut::Co
     }
 
     Err(format!("不支持的按键: {}", key))
+}
+
+/// 保存快捷填充配置并重新注册快捷键
+#[tauri::command]
+pub fn save_quick_fills(
+    quick_fills: Vec<QuickFillEntry>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    log::info!("[CMD] save_quick_fills 被调用，条目数={}", quick_fills.len());
+
+    // 加载当前配置
+    let config_manager = ConfigManager::new(&app).map_err(|e| e.to_string())?;
+    let mut config = config_manager.load().map_err(|e| e.to_string())?;
+
+    // 更新快捷填充配置
+    config.quick_fills = quick_fills;
+
+    // 保存配置到文件
+    config_manager.save(&config).map_err(|e| e.to_string())?;
+
+    // 注销旧的快捷填充快捷键
+    crate::quickfill::unregister_quick_fill_shortcuts(&app);
+
+    // 注册新的快捷填充快捷键
+    crate::quickfill::register_quick_fill_shortcuts(&app, &config.quick_fills)
+        .map_err(|e| e.to_string())?;
+
+    log::info!("[CMD] 快捷填充配置已保存并重新注册");
+    Ok(())
 }
 
 /// 在系统资源管理器中定位到指定路径

@@ -118,6 +118,35 @@ pub fn create_history_window(app: &AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
+/// 创建快捷填充配置窗口（单例模式，居中显示）
+pub fn create_quick_fill_window(app: &AppHandle) -> Result<(), AppError> {
+    // 单例模式：如果已存在则聚焦
+    if let Some(window) = app.get_webview_window("quick-fill") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    // 读取配置以确定界面语言
+    let language = get_config_language(app);
+    let is_zh = resolve_language(&language) == "zh-CN";
+    let title = if is_zh {
+        "SnapTranslate - 快捷文本填充"
+    } else {
+        "SnapTranslate - Quick Text Fill"
+    };
+
+    WebviewWindowBuilder::new(app, "quick-fill", WebviewUrl::App("/quick-fill".into()))
+        .title(title)
+        .inner_size(550.0, 450.0)
+        .center()
+        .resizable(true)
+        .build()
+        .map_err(|e| AppError::ConfigError(format!("创建快捷填充配置窗口失败: {}", e)))?;
+
+    Ok(())
+}
+
 /// 创建文本翻译窗口（单例模式，屏幕下方居中）
 pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
     // 单例模式：如果已存在则聚焦
