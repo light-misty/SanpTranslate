@@ -74,17 +74,22 @@ pub fn test_shortcut_availability(
         None => return Err(format!("无法解析快捷键: {}", shortcut_str)),
     };
 
+    // 先注销当前快捷键（如果已注册），避免本应用的注册影响测试结果
+    let _ = app.global_shortcut().unregister(shortcut);
+    // 短暂等待让系统释放快捷键
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
     // 尝试临时注册来检测是否可用
     match app.global_shortcut().register(shortcut) {
         Ok(()) => {
-            // 注册成功，立即注销
+            // 注册成功，说明快捷键可用，立即注销
             let _ = app.global_shortcut().unregister(shortcut);
             Ok(true)
         }
         Err(e) => {
             let err_str = e.to_string();
             if err_str.contains("already registered") {
-                // 快捷键被占用
+                // 快捷键被其他程序占用
                 Ok(false)
             } else {
                 // 其他错误（如权限问题）
