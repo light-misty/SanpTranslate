@@ -2,4 +2,4 @@
 mod manager;
 
 #[allow(unused_imports)]
-pub use manager::{AppConfig, ConfigManager, ShortcutConfig, resolve_language};
+pub use manager::{AppConfig, ConfigManager, QuickFillEntry, ShortcutConfig, resolve_language};

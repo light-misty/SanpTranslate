@@ -28,6 +28,24 @@ impl Default for ShortcutConfig {
     }
 }
 
+/// 快捷填充条目：快捷键与填充文本的映射
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuickFillEntry {
+    /// 快捷键（如 "Ctrl+Alt+1"）
+    pub shortcut: String,
+    /// 填充文本内容
+    pub text: String,
+}
+
+impl Default for QuickFillEntry {
+    fn default() -> Self {
+        QuickFillEntry {
+            shortcut: String::new(),
+            text: String::new(),
+        }
+    }
+}
+
 /// 应用配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -48,6 +66,8 @@ pub struct AppConfig {
     pub auto_update: bool,
     /// 快捷键配置
     pub shortcuts: ShortcutConfig,
+    /// 快捷填充条目列表
+    pub quick_fills: Vec<QuickFillEntry>,
 }
 
 impl Default for AppConfig {
@@ -61,6 +81,7 @@ impl Default for AppConfig {
             ocr_language: "auto".to_string(),
             auto_update: true,
             shortcuts: ShortcutConfig::default(),
+            quick_fills: Vec::new(),
         }
     }
 }
