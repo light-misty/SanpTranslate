@@ -19,6 +19,8 @@ export interface AppConfig {
   auto_update: boolean
   /** 快捷键配置 */
   shortcuts: ShortcutConfig
+  /** 快捷填充条目列表 */
+  quick_fills: QuickFillEntry[]
 }
 
 /** 快捷键配置 */
@@ -29,6 +31,14 @@ export interface ShortcutConfig {
   pin_clipboard: string
   /** 文本翻译快捷键 */
   text_translate: string
+}
+
+/** 快捷填充条目：快捷键与填充文本的映射 */
+export interface QuickFillEntry {
+  /** 快捷键（如 "Ctrl+Alt+1"） */
+  shortcut: string
+  /** 填充文本内容 */
+  text: string
 }
 
 /** 区域裁剪结果，包含图像数据和窗口位置信息 */
@@ -270,4 +280,9 @@ export async function restartApp(): Promise<void> {
 /** 检测快捷键是否已被其他程序占用，返回 true 表示已被占用 */
 export async function checkShortcutConflict(shortcut: string): Promise<boolean> {
   return invoke<boolean>('check_shortcut_conflict', { shortcut })
+}
+
+/** 保存快捷填充配置并重新注册快捷键 */
+export async function saveQuickFills(quickFills: QuickFillEntry[]): Promise<void> {
+  return invoke('save_quick_fills', { quickFills })
 }

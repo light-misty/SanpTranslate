@@ -271,6 +271,7 @@ export default function SettingsView() {
           pin_clipboard: f.shortcuts_pin_clipboard.trim(),
           text_translate: f.shortcuts_text_translate.trim(),
         },
+        quick_fills: useConfigStore.getState().config?.quick_fills ?? [],
       }
       await useConfigStore.getState().updateConfig(newConfig)
       logger.info(TAG, '配置已自动保存')

@@ -1,0 +1,208 @@
+/* 快捷填充配置页面样式 */
+
+.quickfill-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px;
+  background: #1f1f1f;
+  color: #e0e0e0;
+  overflow: hidden;
+}
+
+.quickfill-header {
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.quickfill-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+}
+
+.quickfill-description {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.quickfill-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #888;
+}
+
+.quickfill-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  padding-right: 4px;
+}
+
+.quickfill-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: #666;
+  font-size: 14px;
+  border: 1px dashed #333;
+  border-radius: 8px;
+}
+
+.quickfill-item {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.quickfill-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.quickfill-item-index {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+}
+
+.quickfill-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.quickfill-remove-btn:hover {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+.quickfill-item-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quickfill-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickfill-label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+}
+
+.quickfill-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 36px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.quickfill-textarea:focus {
+  outline: none;
+  border-color: #1890ff;
+}
+
+.quickfill-textarea::placeholder {
+  color: #555;
+}
+
+.quickfill-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+
+.quickfill-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px dashed #444;
+  border-radius: 6px;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quickfill-add-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.quickfill-save-btn {
+  flex: 1;
+  padding: 8px 20px;
+  background: #1890ff;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quickfill-save-btn:hover:not(:disabled) {
+  background: #40a9ff;
+}
+
+.quickfill-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quickfill-save-btn.save-success {
+  background: #52c41a;
+}
+
+/* 滚动条样式 */
+.quickfill-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quickfill-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.quickfill-list::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+.quickfill-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

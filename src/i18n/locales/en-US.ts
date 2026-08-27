@@ -157,4 +157,18 @@ export default {
     copyTranslation: 'Copy Translation',
     targetLanguage: 'Target Language',
   },
+
+  // Quick text fill
+  quickFill: {
+    title: 'Quick Text Fill',
+    description: 'Configure shortcuts and corresponding fill text. When focus is in an input field, press the shortcut to automatically fill in the text.',
+    shortcut: 'Shortcut',
+    shortcutPlaceholder: 'Click to set shortcut',
+    text: 'Fill Text',
+    textPlaceholder: 'Enter text to fill...',
+    addEntry: 'Add Entry',
+    save: 'Save Configuration',
+    saved: 'Saved',
+    empty: 'No configuration yet, click the button below to add',
+  },
 }

@@ -157,4 +157,18 @@ export default {
     copyTranslation: '复制译文',
     targetLanguage: '目标语言',
   },
+
+  // 快捷文本填充
+  quickFill: {
+    title: '快捷文本填充',
+    description: '配置快捷键和对应的填充文本。当焦点在输入框时，按下快捷键即可自动填充文本。',
+    shortcut: '快捷键',
+    shortcutPlaceholder: '点击设置快捷键',
+    text: '填充文本',
+    textPlaceholder: '输入要填充的文本内容...',
+    addEntry: '添加条目',
+    save: '保存配置',
+    saved: '已保存',
+    empty: '暂无配置，点击下方按钮添加',
+  },
 }

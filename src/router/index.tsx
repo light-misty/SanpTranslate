@@ -7,6 +7,7 @@ const PinView = lazy(() => import('@/views/PinView'))
 const SettingsView = lazy(() => import('@/views/SettingsView'))
 const HistoryView = lazy(() => import('@/views/HistoryView'))
 const TextTranslateView = lazy(() => import('@/views/TextTranslateView'))
+const QuickFillView = lazy(() => import('@/views/QuickFillView'))
 
 /** 路由出口组件 */
 export default function AppRoutes() {
@@ -18,6 +19,7 @@ export default function AppRoutes() {
         <Route path="/settings" element={<SettingsView />} />
         <Route path="/history" element={<HistoryView />} />
         <Route path="/text-translate" element={<TextTranslateView />} />
+        <Route path="/quick-fill" element={<QuickFillView />} />
       </Routes>
     </Suspense>
   )
