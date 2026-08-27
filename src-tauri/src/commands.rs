@@ -760,8 +760,8 @@ pub async fn translate_text(
 
 /// 检测快捷键是否已被其他程序占用
 ///
-/// 通过尝试注册快捷键来判断是否已被占用。
-/// 注册成功后立即注销，避免影响后续正常注册。
+/// 先注销当前快捷键（因为应用自己可能已注册），然后尝试注册来判断是否被其他程序占用。
+/// 检测完成后恢复注册，确保应用功能不受影响。
 #[tauri::command]
 pub fn check_shortcut_conflict(shortcut: String, app: tauri::AppHandle) -> Result<bool, String> {
     use tauri_plugin_global_shortcut::{GlobalShortcutExt, Modifiers, Shortcut};
@@ -787,20 +787,29 @@ pub fn check_shortcut_conflict(shortcut: String, app: tauri::AppHandle) -> Resul
     let key = key_code.ok_or_else(|| format!("快捷键缺少按键: {}", shortcut))?;
     let shortcut_obj = Shortcut::new(Some(modifiers), key);
 
+    // 先注销快捷键（应用自己可能已注册该快捷键）
+    let _ = app.global_shortcut().unregister(shortcut_obj);
+    // 等待系统释放快捷键
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
     // 尝试注册快捷键
     match app.global_shortcut().register(shortcut_obj) {
         Ok(()) => {
-            // 注册成功，说明未被占用，立即注销
+            // 注册成功，说明未被其他程序占用，立即注销
             let _ = app.global_shortcut().unregister(shortcut_obj);
+            // 重新注册，恢复应用自身的功能
+            let _ = app.global_shortcut().register(shortcut_obj);
             Ok(false) // 未被占用
         }
         Err(e) => {
             let err_str = e.to_string();
             if err_str.contains("already registered") {
-                // 快捷键已被占用
+                // 快捷键已被其他程序占用，重新注册以恢复应用自身的功能
+                let _ = app.global_shortcut().register(shortcut_obj);
                 Ok(true)
             } else {
-                // 其他错误（如权限问题），不认为是占用
+                // 其他错误（如权限问题），重新注册以恢复应用自身的功能
+                let _ = app.global_shortcut().register(shortcut_obj);
                 Err(format!("检测快捷键失败: {}", e))
             }
         }
