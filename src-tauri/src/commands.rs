@@ -3,6 +3,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use std::error::Error;
 use tauri::Manager;
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 #[tauri::command]
 pub fn get_config(app: tauri::AppHandle) -> Result<AppConfig, String> {
@@ -11,27 +12,86 @@ pub fn get_config(app: tauri::AppHandle) -> Result<AppConfig, String> {
 }
 
 #[tauri::command]
-pub fn save_config(app: tauri::AppHandle, config: AppConfig) -> Result<(), String> {
+pub fn save_config(app: tauri::AppHandle, config: AppConfig) -> Result<crate::hotkey::ShortcutRegistrationResult, String> {
     let manager = ConfigManager::new(&app).map_err(|e| e.to_string())?;
     manager.save(&config).map_err(|e| e.to_string())?;
 
     // 重新注册全局快捷键（注销旧的，注册新的）
     #[cfg(desktop)]
     {
-        if let Err(e) = crate::hotkey::reregister_hotkeys(&app, &config.shortcuts) {
+        // 根据是否启用覆盖模式选择不同的注册策略
+        let result = if config.override_shortcut {
+            log::info!("[CMD] 使用覆盖模式注册快捷键");
+            crate::hotkey::force_register_hotkeys(&app, &config.shortcuts)
+        } else {
+            crate::hotkey::reregister_hotkeys(&app, &config.shortcuts)
+        }.map_err(|e| {
             log::error!("重新注册快捷键失败: {}", e);
+            e.to_string()
+        })?;
+
+        // 更新托盘菜单以反映快捷键和语言变更
+        if let Err(e) = crate::tray::update_tray_menu(&app, &config.shortcuts, &config.language) {
+            log::warn!("更新托盘菜单失败: {}", e);
+        }
+
+        // 广播语言变更事件到所有窗口
+        crate::tray::emit_language_changed(&app, &config.language);
+
+        return Ok(result);
+    }
+
+    // 非桌面平台返回空结果
+    #[cfg(not(desktop))]
+    Ok(crate::hotkey::ShortcutRegistrationResult {
+        statuses: Vec::new(),
+        has_failure: false,
+    })
+}
+
+/// 检查快捷键注册状态（供设置页面查询）
+#[tauri::command]
+pub fn check_shortcuts_status(app: tauri::AppHandle) -> Result<Option<crate::hotkey::ShortcutRegistrationResult>, String> {
+    // 尝试从应用状态获取注册结果
+    let state = app.try_state::<std::sync::Mutex<crate::hotkey::ShortcutRegistrationResult>>();
+    if let Some(guard) = state {
+        if let Ok(result) = guard.lock() {
+            return Ok(Some(result.clone()));
         }
     }
+    Ok(None)
+}
 
-    // 更新托盘菜单以反映快捷键和语言变更
-    if let Err(e) = crate::tray::update_tray_menu(&app, &config.shortcuts, &config.language) {
-        log::warn!("更新托盘菜单失败: {}", e);
+/// 测试快捷键是否可用（不实际注册，仅检测占用状态）
+#[tauri::command]
+pub fn test_shortcut_availability(
+    shortcut_str: String,
+    app: tauri::AppHandle,
+) -> Result<bool, String> {
+    // 解析快捷键字符串
+    let shortcut = match crate::hotkey::parse_shortcut_for_test(&shortcut_str) {
+        Some(s) => s,
+        None => return Err(format!("无法解析快捷键: {}", shortcut_str)),
+    };
+
+    // 尝试临时注册来检测是否可用
+    match app.global_shortcut().register(shortcut) {
+        Ok(()) => {
+            // 注册成功，立即注销
+            let _ = app.global_shortcut().unregister(shortcut);
+            Ok(true)
+        }
+        Err(e) => {
+            let err_str = e.to_string();
+            if err_str.contains("already registered") {
+                // 快捷键被占用
+                Ok(false)
+            } else {
+                // 其他错误（如权限问题）
+                Err(format!("检测失败: {}", e))
+            }
+        }
     }
-
-    // 广播语言变更事件到所有窗口
-    crate::tray::emit_language_changed(&app, &config.language);
-
-    Ok(())
 }
 
 #[tauri::command]

@@ -4,6 +4,32 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 
 use crate::config::ShortcutConfig;
 use crate::error::AppError;
+use serde::{Deserialize, Serialize};
+
+/// 快捷键注册状态
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortcutStatus {
+    /// 快捷键名称（截图/剪贴板贴图/文本翻译）
+    pub name: String,
+    /// 快捷键字符串表示
+    pub shortcut: String,
+    /// 是否注册成功
+    pub registered: bool,
+    /// 是否被其他程序占用
+    #[serde(rename = "occupied")]
+    pub is_occupied: bool,
+    /// 错误信息（如果有）
+    pub error: Option<String>,
+}
+
+/// 所有快捷键的注册结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortcutRegistrationResult {
+    /// 各快捷键状态列表
+    pub statuses: Vec<ShortcutStatus>,
+    /// 是否有任何快捷键注册失败
+    pub has_failure: bool,
+}
 
 /// 当前已注册的快捷键（解析后的 Shortcut 对象），供全局处理器动态查询
 pub struct CurrentShortcuts {
@@ -42,7 +68,8 @@ pub fn handle_shortcut_event(app: &tauri::AppHandle, shortcut: &Shortcut) {
 }
 
 /// 注册全局快捷键（应用启动时调用）
-pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Result<(), AppError> {
+/// 返回详细的注册结果，包含每个快捷键的占用状态
+pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Result<ShortcutRegistrationResult, AppError> {
     let capture_shortcut = parse_shortcut(&config.capture)?;
     let pin_clipboard_shortcut = parse_shortcut(&config.pin_clipboard)?;
     let text_translate_shortcut = parse_shortcut(&config.text_translate)?;
@@ -58,12 +85,18 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
     app.manage(shortcuts);
 
     // 辅助函数：注册单个快捷键，如果已注册则先注销再重试
-    // 返回 Ok(true) 表示注册成功，Ok(false) 表示快捷键被占用但已跳过
-    let register_one = |shortcut: Shortcut, name: &str| -> Result<bool, AppError> {
+    // 返回 Ok(ShortcutStatus) 包含注册结果和占用状态
+    let register_one = |shortcut: Shortcut, name: &str, shortcut_str: &str| -> ShortcutStatus {
         match app.global_shortcut().register(shortcut) {
             Ok(()) => {
                 log::info!("[HOTKEY] {} 快捷键注册成功", name);
-                Ok(true)
+                ShortcutStatus {
+                    name: name.to_string(),
+                    shortcut: shortcut_str.to_string(),
+                    registered: true,
+                    is_occupied: false,
+                    error: None,
+                }
             }
             Err(e) => {
                 let err_str = e.to_string();
@@ -76,11 +109,23 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
                     match app.global_shortcut().register(shortcut) {
                         Ok(()) => {
                             log::info!("[HOTKEY] {} 快捷键重新注册成功", name);
-                            Ok(true)
+                            ShortcutStatus {
+                                name: name.to_string(),
+                                shortcut: shortcut_str.to_string(),
+                                registered: true,
+                                is_occupied: false,
+                                error: None,
+                            }
                         }
                         Err(e2) => {
                             log::error!("[HOTKEY] {} 快捷键注册失败: {}。该快捷键可能已被其他程序占用，请在设置中更换快捷键。", name, e2);
-                            Ok(false)
+                            ShortcutStatus {
+                                name: name.to_string(),
+                                shortcut: shortcut_str.to_string(),
+                                registered: false,
+                                is_occupied: true,
+                                error: Some(format!("快捷键被占用: {}", e2)),
+                            }
                         }
                     }
                 } else {
@@ -89,22 +134,30 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
                         "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS)。\
                          请前往 系统设置 > 隐私与安全性 > 辅助功能 添加本应用"
                     );
-                    Err(AppError::ConfigError(format!("注册 {} 快捷键失败: {}", name, e)))
+                    ShortcutStatus {
+                        name: name.to_string(),
+                        shortcut: shortcut_str.to_string(),
+                        registered: false,
+                        is_occupied: false,
+                        error: Some(format!("注册失败: {}", e)),
+                    }
                 }
             }
         }
     };
 
-    let capture_ok = register_one(capture_shortcut, "截图")?;
-    let pin_ok = register_one(pin_clipboard_shortcut, "剪贴板贴图")?;
-    let text_ok = register_one(text_translate_shortcut, "文本翻译")?;
+    let capture_status = register_one(capture_shortcut, "截图", &config.capture);
+    let pin_status = register_one(pin_clipboard_shortcut, "剪贴板贴图", &config.pin_clipboard);
+    let text_status = register_one(text_translate_shortcut, "文本翻译", &config.text_translate);
 
-    // 检查是否有快捷键注册失败
-    let mut failed = Vec::new();
-    if !capture_ok { failed.push("截图"); }
-    if !pin_ok { failed.push("剪贴板贴图"); }
-    if !text_ok { failed.push("文本翻译"); }
-    if !failed.is_empty() {
+    let has_failure = !capture_status.registered || !pin_status.registered || !text_status.registered;
+
+    if has_failure {
+        let failed: Vec<&str> = [&capture_status, &pin_status, &text_status]
+            .iter()
+            .filter(|s| !s.registered)
+            .map(|s| s.name.as_str())
+            .collect();
         log::warn!("[HOTKEY] 以下快捷键注册失败（可能已被其他程序占用）: {}。用户可在设置页面重新配置。", failed.join(", "));
     }
 
@@ -115,11 +168,15 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
         config.text_translate
     );
 
-    Ok(())
+    Ok(ShortcutRegistrationResult {
+        statuses: vec![capture_status, pin_status, text_status],
+        has_failure,
+    })
 }
 
 /// 重新注册快捷键（配置变更后调用）
-pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -> Result<(), AppError> {
+/// override_mode 为 true 时，会多次尝试强制注册快捷键
+pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -> Result<ShortcutRegistrationResult, AppError> {
     let new_capture = parse_shortcut(&new_config.capture)?;
     let new_pin = parse_shortcut(&new_config.pin_clipboard)?;
     let new_text_translate = parse_shortcut(&new_config.text_translate)?;
@@ -129,18 +186,71 @@ pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -
         .unregister_all()
         .map_err(|e| AppError::ConfigError(format!("注销快捷键失败: {}", e)))?;
 
-    // 注册新的快捷键
-    app.global_shortcut()
-        .register(new_capture)
-        .map_err(|e| AppError::ConfigError(format!("注册截图快捷键失败: {}", e)))?;
+    // 注册单个快捷键的辅助函数，带重试逻辑
+    let register_with_retry = |shortcut: Shortcut, name: &str, shortcut_str: &str| -> ShortcutStatus {
+        // 首次尝试注册
+        match app.global_shortcut().register(shortcut) {
+            Ok(()) => {
+                return ShortcutStatus {
+                    name: name.to_string(),
+                    shortcut: shortcut_str.to_string(),
+                    registered: true,
+                    is_occupied: false,
+                    error: None,
+                };
+            }
+            Err(e) => {
+                let err_str = e.to_string();
+                if err_str.contains("already registered") {
+                    log::warn!("[HOTKEY] {} 快捷键已被占用，尝试注销后重试...", name);
+                } else {
+                    log::error!("[HOTKEY] {} 快捷键注册失败: {}", name, e);
+                    return ShortcutStatus {
+                        name: name.to_string(),
+                        shortcut: shortcut_str.to_string(),
+                        registered: false,
+                        is_occupied: err_str.contains("already registered"),
+                        error: Some(format!("注册失败: {}", e)),
+                    };
+                }
+            }
+        }
 
-    app.global_shortcut()
-        .register(new_pin)
-        .map_err(|e| AppError::ConfigError(format!("注册剪贴板贴图快捷键失败: {}", e)))?;
+        // 重试：注销所有快捷键后再次尝试
+        for attempt in 1..=3 {
+            let _ = app.global_shortcut().unregister_all();
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            match app.global_shortcut().register(shortcut) {
+                Ok(()) => {
+                    log::info!("[HOTKEY] {} 快捷键第 {} 次重试注册成功", name, attempt);
+                    return ShortcutStatus {
+                        name: name.to_string(),
+                        shortcut: shortcut_str.to_string(),
+                        registered: true,
+                        is_occupied: false,
+                        error: None,
+                    };
+                }
+                Err(_) => {
+                    log::warn!("[HOTKEY] {} 快捷键第 {} 次重试失败", name, attempt);
+                }
+            }
+        }
 
-    app.global_shortcut()
-        .register(new_text_translate)
-        .map_err(|e| AppError::ConfigError(format!("注册文本翻译快捷键失败: {}", e)))?;
+        // 所有重试失败
+        ShortcutStatus {
+            name: name.to_string(),
+            shortcut: shortcut_str.to_string(),
+            registered: false,
+            is_occupied: true,
+            error: Some("快捷键被其他程序占用".to_string()),
+        }
+    };
+
+    // 依次注册三个快捷键
+    let capture_status = register_with_retry(new_capture, "截图", &new_config.capture);
+    let pin_status = register_with_retry(new_pin, "剪贴板贴图", &new_config.pin_clipboard);
+    let text_status = register_with_retry(new_text_translate, "文本翻译", &new_config.text_translate);
 
     // 通过 Arc 更新状态中的快捷键，使处理器能匹配新的快捷键
     let shortcuts = app.state::<Arc<Mutex<CurrentShortcuts>>>();
@@ -151,14 +261,94 @@ pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -
     current.pin_clipboard = new_pin;
     current.text_translate = new_text_translate;
 
+    let has_failure = !capture_status.registered || !pin_status.registered || !text_status.registered;
+
     log::info!(
-        "[HOTKEY] 快捷键已更新: 截图={}, 剪贴板贴图={}, 文本翻译={}",
+        "[HOTKEY] 快捷键已更新: 截图={}, 剪贴板贴图={}, 文本翻译={}, 有失败={}",
         new_config.capture,
         new_config.pin_clipboard,
-        new_config.text_translate
+        new_config.text_translate,
+        has_failure
     );
 
-    Ok(())
+    Ok(ShortcutRegistrationResult {
+        statuses: vec![capture_status, pin_status, text_status],
+        has_failure,
+    })
+}
+
+/// 强制覆盖注册快捷键（覆盖模式）
+/// 通过多次注销-注册循环尝试强制占用快捷键
+pub fn force_register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Result<ShortcutRegistrationResult, AppError> {
+    let capture_shortcut = parse_shortcut(&config.capture)?;
+    let pin_clipboard_shortcut = parse_shortcut(&config.pin_clipboard)?;
+    let text_translate_shortcut = parse_shortcut(&config.text_translate)?;
+
+    // 先注销所有快捷键
+    let _ = app.global_shortcut().unregister_all();
+    std::thread::sleep(std::time::Duration::from_millis(300));
+
+    // 强制注册辅助函数：通过系统级抢占策略尝试获取快捷键
+    let force_register_one = |shortcut: Shortcut, name: &str, shortcut_str: &str| -> ShortcutStatus {
+        // 尝试多次注册，每次失败后等待更长时间
+        for attempt in 1..=5 {
+            match app.global_shortcut().register(shortcut) {
+                Ok(()) => {
+                    log::info!("[HOTKEY] {} 快捷键强制注册成功（第 {} 次尝试）", name, attempt);
+                    return ShortcutStatus {
+                        name: name.to_string(),
+                        shortcut: shortcut_str.to_string(),
+                        registered: true,
+                        is_occupied: false,
+                        error: None,
+                    };
+                }
+                Err(e) => {
+                    log::warn!("[HOTKEY] {} 快捷键第 {} 次强制注册失败: {}", name, attempt, e);
+                    // 注销所有快捷键后重试
+                    let _ = app.global_shortcut().unregister_all();
+                    // 递增等待时间，让系统释放快捷键
+                    std::thread::sleep(std::time::Duration::from_millis(200 * attempt as u64));
+                }
+            }
+        }
+
+        // 所有尝试失败
+        ShortcutStatus {
+            name: name.to_string(),
+            shortcut: shortcut_str.to_string(),
+            registered: false,
+            is_occupied: true,
+            error: Some("无法覆盖占用，请手动关闭占用该快捷键的程序".to_string()),
+        }
+    };
+
+    let capture_status = force_register_one(capture_shortcut, "截图", &config.capture);
+    let pin_status = force_register_one(pin_clipboard_shortcut, "剪贴板贴图", &config.pin_clipboard);
+    let text_status = force_register_one(text_translate_shortcut, "文本翻译", &config.text_translate);
+
+    // 更新状态
+    let shortcuts = app.state::<Arc<Mutex<CurrentShortcuts>>>();
+    if let Ok(mut current) = shortcuts.lock() {
+        current.capture = capture_shortcut;
+        current.pin_clipboard = pin_clipboard_shortcut;
+        current.text_translate = text_translate_shortcut;
+    }
+
+    let has_failure = !capture_status.registered || !pin_status.registered || !text_status.registered;
+
+    log::info!(
+        "[HOTKEY] 强制注册快捷键完成: 截图={}, 剪贴板贴图={}, 文本翻译={}, 有失败={}",
+        config.capture,
+        config.pin_clipboard,
+        config.text_translate,
+        has_failure
+    );
+
+    Ok(ShortcutRegistrationResult {
+        statuses: vec![capture_status, pin_status, text_status],
+        has_failure,
+    })
 }
 
 /// 截屏流程（托盘菜单点击触发）：延迟 250ms 等待托盘菜单从屏幕上消失后再截图
@@ -422,6 +612,30 @@ fn handle_text_translate_hotkey(app: &tauri::AppHandle) {
     if let Err(e) = crate::window::create_text_translate_window(app) {
         log::error!("[HOTKEY] 创建文本翻译窗口失败: {}", e);
     }
+}
+
+/// 解析快捷键字符串（公共函数，供测试可用性使用）
+pub fn parse_shortcut_for_test(shortcut_str: &str) -> Option<Shortcut> {
+    let parts: Vec<&str> = shortcut_str.split('+').collect();
+
+    let mut modifiers = Modifiers::empty();
+    let mut key_code = None;
+
+    for part in parts {
+        let trimmed = part.trim();
+        match trimmed.to_lowercase().as_str() {
+            "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
+            "shift" => modifiers |= Modifiers::SHIFT,
+            "alt" => modifiers |= Modifiers::ALT,
+            "super" | "win" | "meta" => modifiers |= Modifiers::SUPER,
+            _ => {
+                key_code = parse_key_code(trimmed).ok();
+            }
+        }
+    }
+
+    let key = key_code?;
+    Some(Shortcut::new(Some(modifiers), key))
 }
 
 fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {

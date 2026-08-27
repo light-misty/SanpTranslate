@@ -114,7 +114,9 @@ pub fn run() {
             commands::delete_history,
             commands::clear_history,
             commands::restart_app,
-            commands::reveal_in_explorer
+            commands::reveal_in_explorer,
+            commands::check_shortcuts_status,
+            commands::test_shortcut_availability
         ])
         .setup(|app| {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）
@@ -196,7 +198,14 @@ pub fn run() {
             clipboard::start_clipboard_watcher(app.handle().clone(), watcher_cache);
 
             #[cfg(desktop)]
-            hotkey::register_hotkeys(app.handle(), &app_config.shortcuts)?;
+            {
+                let result = hotkey::register_hotkeys(app.handle(), &app_config.shortcuts)?;
+                if result.has_failure {
+                    log::warn!("[SETUP] 部分快捷键注册失败，用户可在设置页面查看");
+                    // 将结果存入应用状态，供前端查询
+                    app.manage(std::sync::Mutex::new(result));
+                }
+            }
 
             // 自动更新检查（仅 release 模式且开启了自动更新时执行）
             #[cfg(all(desktop, not(debug_assertions)))]
