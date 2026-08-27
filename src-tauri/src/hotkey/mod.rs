@@ -102,8 +102,8 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
                 let err_str = e.to_string();
                 if err_str.contains("already registered") {
                     log::warn!("[HOTKEY] {} 快捷键已被注册（可能被其他程序占用），尝试注销后重试...", name);
-                    // 先注销所有快捷键，等待一下让系统释放快捷键
-                    let _ = app.global_shortcut().unregister_all();
+                    // 只注销当前快捷键，避免影响其他已注册的快捷键
+                    let _ = app.global_shortcut().unregister(shortcut);
                     std::thread::sleep(std::time::Duration::from_millis(200));
                     // 重试注册
                     match app.global_shortcut().register(shortcut) {
@@ -131,7 +131,7 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
                 } else {
                     #[cfg(target_os = "macos")]
                     log::warn!(
-                        "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS)。\
+                        "[PERMISSION] 快捷键注册失败需要辅助功能权限 (macOS）。\
                          请前往 系统设置 > 隐私与安全性 > 辅助功能 添加本应用"
                     );
                     ShortcutStatus {
@@ -216,9 +216,9 @@ pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -
             }
         }
 
-        // 重试：注销所有快捷键后再次尝试
+        // 重试：只注销当前快捷键后再次尝试
         for attempt in 1..=3 {
-            let _ = app.global_shortcut().unregister_all();
+            let _ = app.global_shortcut().unregister(shortcut);
             std::thread::sleep(std::time::Duration::from_millis(200));
             match app.global_shortcut().register(shortcut) {
                 Ok(()) => {
@@ -289,6 +289,7 @@ pub fn force_register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -
     std::thread::sleep(std::time::Duration::from_millis(300));
 
     // 强制注册辅助函数：通过系统级抢占策略尝试获取快捷键
+    // 注意：失败时只注销当前快捷键，避免影响已注册的其他快捷键
     let force_register_one = |shortcut: Shortcut, name: &str, shortcut_str: &str| -> ShortcutStatus {
         // 尝试多次注册，每次失败后等待更长时间
         for attempt in 1..=5 {
@@ -305,8 +306,8 @@ pub fn force_register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -
                 }
                 Err(e) => {
                     log::warn!("[HOTKEY] {} 快捷键第 {} 次强制注册失败: {}", name, attempt, e);
-                    // 注销所有快捷键后重试
-                    let _ = app.global_shortcut().unregister_all();
+                    // 只注销当前尝试的快捷键，避免影响其他已注册的快捷键
+                    let _ = app.global_shortcut().unregister(shortcut);
                     // 递增等待时间，让系统释放快捷键
                     std::thread::sleep(std::time::Duration::from_millis(200 * attempt as u64));
                 }
