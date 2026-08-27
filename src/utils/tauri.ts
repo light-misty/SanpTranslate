@@ -17,6 +17,8 @@ export interface AppConfig {
   ocr_language: string
   /** 是否开启自动更新 */
   auto_update: boolean
+  /** 是否启用覆盖快捷键模式（强制覆盖其他程序的快捷键占用） */
+  override_shortcut: boolean
   /** 快捷键配置 */
   shortcuts: ShortcutConfig
 }
@@ -265,4 +267,36 @@ export async function isAutoStartEnabled(): Promise<boolean> {
 /** 重启应用（更新后使用） */
 export async function restartApp(): Promise<void> {
   return invoke('restart_app')
+}
+
+/** 快捷键注册状态 */
+export interface ShortcutStatus {
+  /** 快捷键名称 */
+  name: string
+  /** 快捷键字符串表示 */
+  shortcut: string
+  /** 是否注册成功 */
+  registered: boolean
+  /** 是否被其他程序占用 */
+  occupied: boolean
+  /** 错误信息（如果有） */
+  error: string | null
+}
+
+/** 快捷键注册结果 */
+export interface ShortcutRegistrationResult {
+  /** 各快捷键状态列表 */
+  statuses: ShortcutStatus[]
+  /** 是否有任何快捷键注册失败 */
+  has_failure: boolean
+}
+
+/** 检查快捷键注册状态 */
+export async function checkShortcutsStatus(): Promise<ShortcutRegistrationResult | null> {
+  return invoke<ShortcutRegistrationResult | null>('check_shortcuts_status')
+}
+
+/** 测试快捷键是否可用（返回 true 表示可用，false 表示被占用） */
+export async function testShortcutAvailability(shortcutStr: string): Promise<boolean> {
+  return invoke<boolean>('test_shortcut_availability', { shortcutStr })
 }

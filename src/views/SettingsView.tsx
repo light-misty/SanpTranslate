@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { App as AntdApp, Button, Card, Form, Input, Progress, Select, Space, Spin, Switch, Tooltip, Typography } from 'antd'
+import { App as AntdApp, Button, Card, Form, Input, Progress, Select, Space, Spin, Switch, Tooltip, Typography, Alert } from 'antd'
 import { check, type Update, type DownloadEvent } from '@tauri-apps/plugin-updater'
 import { invoke } from '@tauri-apps/api/core'
 import { useConfigStore } from '@/stores/configStore'
-import { testApiConnection, deleteApiKey, getConfigPath, getLogDir, enableAutoStart, disableAutoStart, isAutoStartEnabled, restartApp, type AppConfig } from '@/utils/tauri'
+import { testApiConnection, deleteApiKey, getConfigPath, getLogDir, enableAutoStart, disableAutoStart, isAutoStartEnabled, restartApp, checkShortcutsStatus, testShortcutAvailability, type AppConfig, type ShortcutStatus } from '@/utils/tauri'
 import { logger } from '@/utils/logger'
 import ShortcutInput from '@/components/ShortcutInput'
 import './SettingsView.css'
@@ -40,6 +40,7 @@ interface FormData {
   language: string
   ocr_language: string
   auto_update: boolean
+  override_shortcut: boolean
   shortcuts_capture: string
   shortcuts_pin_clipboard: string
   shortcuts_text_translate: string
@@ -60,6 +61,7 @@ const DEFAULT_FORM: FormData = {
   language: 'auto',
   ocr_language: 'auto',
   auto_update: true,
+  override_shortcut: false,
   shortcuts_capture: '',
   shortcuts_pin_clipboard: '',
   shortcuts_text_translate: '',
@@ -102,6 +104,11 @@ export default function SettingsView() {
   const [updateStatus, setUpdateStatus] = useState('')
   const [updateStatusType, setUpdateStatusType] = useState<'success' | 'error' | 'warning' | 'info'>('info')
   const [pendingUpdate, setPendingUpdate] = useState<Update | null>(null)
+
+  // 快捷键状态相关
+  const [shortcutStatuses, setShortcutStatuses] = useState<ShortcutStatus[]>([])
+  const [shortcutTesting, setShortcutTesting] = useState<Record<string, boolean>>({})
+  const [shortcutAvailability, setShortcutAvailability] = useState<Record<string, boolean | null>>({})
 
   // 标记是否已完成初始加载，防止初始填充触发自动保存
   const initializedRef = useRef(false)
@@ -190,6 +197,7 @@ export default function SettingsView() {
       language: config.language || 'auto',
       ocr_language: config.ocr_language || 'auto',
       auto_update: config.auto_update !== undefined ? config.auto_update : true,
+      override_shortcut: config.override_shortcut || false,
       shortcuts_capture: config.shortcuts?.capture ?? '',
       shortcuts_pin_clipboard: config.shortcuts?.pin_clipboard ?? '',
       shortcuts_text_translate: config.shortcuts?.text_translate ?? '',
@@ -254,6 +262,21 @@ export default function SettingsView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /** 加载快捷键注册状态 */
+  useEffect(() => {
+    if (!initializedRef.current) return
+    ;(async () => {
+      try {
+        const result = await checkShortcutsStatus()
+        if (result && result.statuses.length > 0) {
+          setShortcutStatuses(result.statuses)
+        }
+      } catch (err) {
+        logger.warn(TAG, `加载快捷键状态失败: ${err}`)
+      }
+    })()
+  }, [form.shortcuts_capture, form.shortcuts_pin_clipboard, form.shortcuts_text_translate])
+
   /** 防抖自动保存配置（成功时不弹消息，仅在出错时提示） */
   async function autoSave() {
     const f = formRef.current
@@ -266,6 +289,7 @@ export default function SettingsView() {
         language: f.language,
         ocr_language: f.ocr_language,
         auto_update: f.auto_update,
+        override_shortcut: f.override_shortcut,
         shortcuts: {
           capture: f.shortcuts_capture.trim(),
           pin_clipboard: f.shortcuts_pin_clipboard.trim(),
@@ -277,6 +301,26 @@ export default function SettingsView() {
     } catch (err) {
       message.error(`${t('settings.saveFailed')}: ${err}`)
       logger.error(TAG, `自动保存配置失败: ${err}`)
+    }
+  }
+
+  /** 测试快捷键是否可用 */
+  async function testShortcut(key: string, shortcutValue: string) {
+    if (!shortcutValue.trim()) return
+    setShortcutTesting((prev) => ({ ...prev, [key]: true }))
+    try {
+      const available = await testShortcutAvailability(shortcutValue.trim())
+      setShortcutAvailability((prev) => ({ ...prev, [key]: available }))
+      if (available) {
+        message.success(t('settings.shortcutAvailable'))
+      } else {
+        message.warning(t('settings.shortcutOccupied'))
+      }
+    } catch (err) {
+      logger.warn(TAG, `测试快捷键失败: ${err}`)
+      setShortcutAvailability((prev) => ({ ...prev, [key]: null }))
+    } finally {
+      setShortcutTesting((prev) => ({ ...prev, [key]: false }))
     }
   }
 
@@ -295,6 +339,7 @@ export default function SettingsView() {
     form.target_language,
     form.ocr_language,
     form.auto_update,
+    form.override_shortcut,
     form.shortcuts_capture,
     form.shortcuts_pin_clipboard,
     form.shortcuts_text_translate,
@@ -704,26 +749,105 @@ export default function SettingsView() {
         return (
           <Card title={t('settings.shortcutConfig')} size="small">
             <Form layout="horizontal" labelCol={{ style: { width: 100 } }}>
+              {/* 覆盖快捷键开关 */}
+              <Form.Item label={t('settings.overrideShortcut')}>
+                <Space align="center" size={8}>
+                  <Switch
+                    checked={form.override_shortcut}
+                    onChange={(v: boolean) => updateField('override_shortcut', v)}
+                  />
+                  <Tooltip title={t('settings.overrideShortcutDesc')}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      width={16}
+                      height={16}
+                      color="#888"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                    </svg>
+                  </Tooltip>
+                </Space>
+              </Form.Item>
+
+              {/* 快捷键占用状态提示 */}
+              {shortcutStatuses.some((s) => s.occupied) && (
+                <Form.Item label="">
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message={t('settings.shortcutOccupied')}
+                    style={{ marginBottom: 8 }}
+                  />
+                </Form.Item>
+              )}
+
               <Form.Item label={t('settings.captureShortcut')}>
-                <ShortcutInput
-                  value={form.shortcuts_capture}
-                  onChange={(v: string) => updateField('shortcuts_capture', v)}
-                  placeholder={t('settings.clickToSet')}
-                />
+                <Space align="center" size={8}>
+                  <ShortcutInput
+                    value={form.shortcuts_capture}
+                    onChange={(v: string) => updateField('shortcuts_capture', v)}
+                    placeholder={t('settings.clickToSet')}
+                    status={shortcutStatuses.find((s) => s.name === '截图')?.occupied ? 'occupied' : undefined}
+                  />
+                  <Button
+                    size="small"
+                    loading={shortcutTesting['capture']}
+                    onClick={() => testShortcut('capture', form.shortcuts_capture)}
+                  >
+                    {shortcutTesting['capture'] ? t('settings.shortcutChecking') : '测试'}
+                  </Button>
+                  {shortcutAvailability['capture'] === false && (
+                    <Typography.Text type="warning" style={{ fontSize: 12 }}>
+                      {t('settings.shortcutOccupied')}
+                    </Typography.Text>
+                  )}
+                </Space>
               </Form.Item>
               <Form.Item label={t('settings.pinClipboardShortcut')}>
-                <ShortcutInput
-                  value={form.shortcuts_pin_clipboard}
-                  onChange={(v: string) => updateField('shortcuts_pin_clipboard', v)}
-                  placeholder={t('settings.clickToSet')}
-                />
+                <Space align="center" size={8}>
+                  <ShortcutInput
+                    value={form.shortcuts_pin_clipboard}
+                    onChange={(v: string) => updateField('shortcuts_pin_clipboard', v)}
+                    placeholder={t('settings.clickToSet')}
+                    status={shortcutStatuses.find((s) => s.name === '剪贴板贴图')?.occupied ? 'occupied' : undefined}
+                  />
+                  <Button
+                    size="small"
+                    loading={shortcutTesting['pin_clipboard']}
+                    onClick={() => testShortcut('pin_clipboard', form.shortcuts_pin_clipboard)}
+                  >
+                    {shortcutTesting['pin_clipboard'] ? t('settings.shortcutChecking') : '测试'}
+                  </Button>
+                  {shortcutAvailability['pin_clipboard'] === false && (
+                    <Typography.Text type="warning" style={{ fontSize: 12 }}>
+                      {t('settings.shortcutOccupied')}
+                    </Typography.Text>
+                  )}
+                </Space>
               </Form.Item>
               <Form.Item label={t('settings.textTranslateShortcut')}>
-                <ShortcutInput
-                  value={form.shortcuts_text_translate}
-                  onChange={(v: string) => updateField('shortcuts_text_translate', v)}
-                  placeholder={t('settings.clickToSet')}
-                />
+                <Space align="center" size={8}>
+                  <ShortcutInput
+                    value={form.shortcuts_text_translate}
+                    onChange={(v: string) => updateField('shortcuts_text_translate', v)}
+                    placeholder={t('settings.clickToSet')}
+                    status={shortcutStatuses.find((s) => s.name === '文本翻译')?.occupied ? 'occupied' : undefined}
+                  />
+                  <Button
+                    size="small"
+                    loading={shortcutTesting['text_translate']}
+                    onClick={() => testShortcut('text_translate', form.shortcuts_text_translate)}
+                  >
+                    {shortcutTesting['text_translate'] ? t('settings.shortcutChecking') : '测试'}
+                  </Button>
+                  {shortcutAvailability['text_translate'] === false && (
+                    <Typography.Text type="warning" style={{ fontSize: 12 }}>
+                      {t('settings.shortcutOccupied')}
+                    </Typography.Text>
+                  )}
+                </Space>
               </Form.Item>
               <Form.Item label="">
                 <Button size="small" onClick={onRestoreDefaults}>

@@ -23,6 +23,18 @@
   box-shadow: 0 0 0 2px rgba(99, 226, 183, 0.2);
 }
 
+/* 快捷键被占用状态 */
+.shortcut-input.occupied {
+  border-color: #ff7875;
+  box-shadow: 0 0 0 2px rgba(255, 120, 117, 0.2);
+}
+
+/* 快捷键可用状态 */
+.shortcut-input.available {
+  border-color: #63e2b7;
+  box-shadow: 0 0 0 2px rgba(99, 226, 183, 0.2);
+}
+
 .shortcut-value {
   color: rgba(255, 255, 255, 0.82);
   font-size: 14px;
@@ -46,6 +58,23 @@
   border-radius: 50%;
   background-color: #63e2b7;
   animation: pulse 1s ease-in-out infinite;
+}
+
+/* 状态指示点 */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.occupied-dot {
+  background-color: #ff7875;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.available-dot {
+  background-color: #63e2b7;
 }
 
 @keyframes pulse {

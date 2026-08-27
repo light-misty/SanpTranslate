@@ -10,6 +10,8 @@ interface ShortcutInputProps {
   placeholder?: string
   /** 快捷键变更回调（录制完成后触发） */
   onChange: (value: string) => void
+  /** 快捷键状态：'occupied' 表示被占用 */
+  status?: 'occupied' | 'available' | undefined
 }
 
 /** 支持的普通按键映射（event.code -> 显示名称） */
@@ -80,7 +82,7 @@ function buildShortcutString(modifiers: Set<string>, key: string | null): string
 }
 
 /** 快捷键输入组件：聚焦后录制按键组合，录制结果通过 onChange 通知父组件 */
-export default function ShortcutInput({ value, placeholder, onChange }: ShortcutInputProps) {
+export default function ShortcutInput({ value, placeholder, onChange, status }: ShortcutInputProps) {
   const { t } = useTranslation()
   const inputRef = useRef<HTMLDivElement>(null)
   const [isRecording, setIsRecording] = useState(false)
@@ -170,10 +172,18 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
     }
   }, [])
 
+  // 根据状态计算样式类名
+  const className = [
+    'shortcut-input',
+    isRecording ? 'recording' : '',
+    status === 'occupied' ? 'occupied' : '',
+    status === 'available' ? 'available' : '',
+  ].filter(Boolean).join(' ')
+
   return (
     <div
       tabIndex={0}
-      className={isRecording ? 'shortcut-input recording' : 'shortcut-input'}
+      className={className}
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
       onFocus={onFocus}
@@ -188,6 +198,8 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
         <span className="shortcut-placeholder">{placeholder}</span>
       )}
       {isRecording && <span className="recording-dot"></span>}
+      {status === 'occupied' && <span className="status-dot occupied-dot" title={t('settings.shortcutOccupied')}></span>}
+      {status === 'available' && <span className="status-dot available-dot"></span>}
     </div>
   )
 }
