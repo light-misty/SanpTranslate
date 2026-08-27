@@ -750,7 +750,7 @@ export default function SettingsView() {
                   <Alert
                     type="warning"
                     showIcon
-                    message={t('settings.shortcutOccupied')}
+                    message={t('settings.shortcutOccupiedWarning')}
                     style={{ marginBottom: 8 }}
                   />
                 </Form.Item>

@@ -74,6 +74,7 @@ export default {
     shortcutOccupied: '该快捷键被其他程序占用',
     shortcutAvailable: '快捷键可用',
     shortcutChecking: '检测中...',
+    shortcutOccupiedWarning: '部分快捷键被其他程序占用，可能导致快捷键无法使用。请关闭占用快捷键的程序，或选择其他快捷键。',
     testConnection: '测试连接',
     saveFailed: '保存失败',
     loadFailed: '加载配置失败',

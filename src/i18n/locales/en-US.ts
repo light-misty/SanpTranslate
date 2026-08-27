@@ -74,6 +74,7 @@ export default {
     shortcutOccupied: 'This shortcut is occupied by another app',
     shortcutAvailable: 'Shortcut available',
     shortcutChecking: 'Checking...',
+    shortcutOccupiedWarning: 'Some shortcuts are occupied by other apps and may not work. Please close the app occupying the shortcuts, or choose different shortcuts.',
     testConnection: 'Test Connection',
     saveFailed: 'Save failed',
     loadFailed: 'Failed to load configuration',
