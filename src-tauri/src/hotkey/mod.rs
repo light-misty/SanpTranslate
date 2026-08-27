@@ -94,6 +94,7 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
 
     // 存入应用状态，供 reregister_hotkeys 更新
     app.manage(shortcuts);
+    log::info!("[HOTKEY] CurrentShortcuts 状态已注册到应用");
 
     // 辅助函数：注册单个快捷键，如果已注册则先注销再重试
     // 返回 Ok(ShortcutStatus) 包含注册结果和占用状态
