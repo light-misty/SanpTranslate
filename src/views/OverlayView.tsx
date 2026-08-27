@@ -6,7 +6,6 @@ import { captureRegionFromCache, storePinImage } from '@/utils/tauri'
 import { logger } from '@/utils/logger'
 import './OverlayView.css'
 
-/** 截图蒙版视图：与 vue 版 OverlayView.vue 行为逐项等价 */
 export default function OverlayView() {
   const TAG = 'Overlay'
   const { t } = useTranslation()

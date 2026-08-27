@@ -13,7 +13,6 @@ i18n.use(initReactI18next).init({
   },
   lng: initialLanguage,
   fallbackLng: 'en-US',
-  // 兼容语言包中 vue-i18n 的 {param} 占位符语法
   interpolation: {
     prefix: '{',
     suffix: '}',

@@ -335,7 +335,6 @@ fn prepare_pin_window(
     w: u32,
     h: u32,
 ) -> Result<PinWindowInfo, AppError> {
-    // 阴影内边距，需与前端 PinView.vue 中的 PIN_PADDING 保持一致
     const PIN_PADDING: f64 = 14.0;
     const CONTROL_BAR_H: f64 = 36.0;
 

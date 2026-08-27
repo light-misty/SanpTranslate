@@ -19,7 +19,7 @@ const TAG = 'PinView'
 // 阴影内边距，需与后端 window/mod.rs 中的 PIN_PADDING 保持一致
 const PIN_PADDING = 14
 
-/** 贴图窗口视图：展示截图、译文面板与操作控制栏（React 版本，行为与 PinView.vue 逐项等价） */
+/** 贴图窗口视图：展示截图、译文面板与操作控制栏 */
 export default function PinView() {
   const [imageDataUrl, setImageDataUrl] = useState<string>('')
   const [imageLoaded, setImageLoaded] = useState(false)

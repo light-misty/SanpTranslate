@@ -144,7 +144,6 @@ pub fn capture_region_from_cache(
     let logical_w = width as f64 / scale_factor;
     let logical_h = height as f64 / scale_factor;
 
-    // 阴影内边距和控制栏高度，需与前端 PinView.vue 保持一致
     const PIN_PADDING: f64 = 14.0;
     const CONTROL_BAR_H: f64 = 36.0;
 
