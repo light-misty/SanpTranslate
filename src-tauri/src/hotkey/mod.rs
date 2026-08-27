@@ -42,7 +42,10 @@ pub struct CurrentShortcuts {
 pub fn handle_shortcut_event(app: &tauri::AppHandle, shortcut: &Shortcut) {
     let shortcuts = match app.try_state::<Arc<Mutex<CurrentShortcuts>>>() {
         Some(s) => s,
-        None => return,
+        None => {
+            log::warn!("[HOTKEY] 快捷键事件触发，但 CurrentShortcuts 状态未初始化");
+            return;
+        }
     };
 
     let is_capture;
@@ -51,7 +54,10 @@ pub fn handle_shortcut_event(app: &tauri::AppHandle, shortcut: &Shortcut) {
     {
         let current = match shortcuts.lock() {
             Ok(c) => c,
-            Err(_) => return,
+            Err(_) => {
+                log::error!("[HOTKEY] 锁定 CurrentShortcuts 失败");
+                return;
+            }
         };
         is_capture = shortcut == &current.capture;
         is_pin = shortcut == &current.pin_clipboard;
@@ -59,11 +65,16 @@ pub fn handle_shortcut_event(app: &tauri::AppHandle, shortcut: &Shortcut) {
     }
 
     if is_capture {
+        log::info!("[HOTKEY] 截图快捷键匹配");
         handle_capture_hotkey(app);
     } else if is_pin {
+        log::info!("[HOTKEY] 剪贴板贴图快捷键匹配");
         handle_pin_clipboard_hotkey(app);
     } else if is_text_translate {
+        log::info!("[HOTKEY] 文本翻译快捷键匹配");
         handle_text_translate_hotkey(app);
+    } else {
+        log::warn!("[HOTKEY] 快捷键事件触发，但无匹配的快捷键");
     }
 }
 
