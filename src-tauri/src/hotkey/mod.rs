@@ -424,7 +424,8 @@ fn handle_text_translate_hotkey(app: &tauri::AppHandle) {
     }
 }
 
-fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
+/// 解析快捷键字符串（如 "Ctrl+Alt+L"）为 Shortcut 对象
+pub fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
     let parts: Vec<&str> = shortcut_str.split('+').collect();
 
     let mut modifiers = Modifiers::empty();
@@ -450,7 +451,8 @@ fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
     Ok(Shortcut::new(Some(modifiers), key))
 }
 
-fn parse_key_code(key: &str) -> Result<Code, AppError> {
+/// 解析按键名称到 Code
+pub fn parse_key_code(key: &str) -> Result<Code, AppError> {
     if key.len() > 1 {
         let lower = key.to_lowercase();
         if let Some(stripped) = lower.strip_prefix('f') {

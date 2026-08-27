@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 use crate::config::QuickFillEntry;
 use crate::error::AppError;
@@ -34,7 +34,7 @@ pub fn register_quick_fill_shortcuts(
             continue;
         }
 
-        match parse_quick_fill_shortcut(&entry.shortcut) {
+        match crate::hotkey::parse_shortcut(&entry.shortcut) {
             Ok(shortcut) => {
                 // 尝试注册快捷键
                 match app.global_shortcut().register(shortcut) {
@@ -124,115 +124,6 @@ pub fn handle_quick_fill_shortcut(app: &tauri::AppHandle, shortcut: &Shortcut) {
         );
         fill_text_with_app(app, &text);
     }
-}
-
-/// 解析快捷填充快捷键字符串
-fn parse_quick_fill_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
-    let parts: Vec<&str> = shortcut_str.split('+').collect();
-
-    let mut modifiers = Modifiers::empty();
-    let mut key_code = None;
-
-    for part in parts {
-        let trimmed = part.trim();
-        match trimmed.to_lowercase().as_str() {
-            "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
-            "shift" => modifiers |= Modifiers::SHIFT,
-            "alt" => modifiers |= Modifiers::ALT,
-            "super" | "win" | "meta" => modifiers |= Modifiers::SUPER,
-            _ => {
-                key_code = Some(parse_key_code(trimmed)?);
-            }
-        }
-    }
-
-    let key = key_code.ok_or_else(|| {
-        AppError::ConfigError(format!("快捷键缺少按键: {}", shortcut_str))
-    })?;
-
-    Ok(Shortcut::new(Some(modifiers), key))
-}
-
-/// 解析按键名称到 Code
-fn parse_key_code(key: &str) -> Result<Code, AppError> {
-    if key.len() > 1 {
-        let lower = key.to_lowercase();
-        if let Some(stripped) = lower.strip_prefix('f') {
-            let num: u32 = stripped
-                .parse()
-                .map_err(|_| AppError::ConfigError(format!("无效的功能键: {}", key)))?;
-            return match num {
-                1 => Ok(Code::F1),
-                2 => Ok(Code::F2),
-                3 => Ok(Code::F3),
-                4 => Ok(Code::F4),
-                5 => Ok(Code::F5),
-                6 => Ok(Code::F6),
-                7 => Ok(Code::F7),
-                8 => Ok(Code::F8),
-                9 => Ok(Code::F9),
-                10 => Ok(Code::F10),
-                11 => Ok(Code::F11),
-                12 => Ok(Code::F12),
-                _ => Err(AppError::ConfigError(format!(
-                    "不支持的功能键编号: {}",
-                    num
-                ))),
-            };
-        }
-    }
-
-    if key.len() == 1 {
-        let c = key.chars().next().unwrap();
-        if c.is_ascii_alphabetic() {
-            return Ok(match c.to_ascii_uppercase() {
-                'A' => Code::KeyA,
-                'B' => Code::KeyB,
-                'C' => Code::KeyC,
-                'D' => Code::KeyD,
-                'E' => Code::KeyE,
-                'F' => Code::KeyF,
-                'G' => Code::KeyG,
-                'H' => Code::KeyH,
-                'I' => Code::KeyI,
-                'J' => Code::KeyJ,
-                'K' => Code::KeyK,
-                'L' => Code::KeyL,
-                'M' => Code::KeyM,
-                'N' => Code::KeyN,
-                'O' => Code::KeyO,
-                'P' => Code::KeyP,
-                'Q' => Code::KeyQ,
-                'R' => Code::KeyR,
-                'S' => Code::KeyS,
-                'T' => Code::KeyT,
-                'U' => Code::KeyU,
-                'V' => Code::KeyV,
-                'W' => Code::KeyW,
-                'X' => Code::KeyX,
-                'Y' => Code::KeyY,
-                'Z' => Code::KeyZ,
-                _ => unreachable!(),
-            });
-        }
-        if c.is_ascii_digit() {
-            return Ok(match c {
-                '0' => Code::Digit0,
-                '1' => Code::Digit1,
-                '2' => Code::Digit2,
-                '3' => Code::Digit3,
-                '4' => Code::Digit4,
-                '5' => Code::Digit5,
-                '6' => Code::Digit6,
-                '7' => Code::Digit7,
-                '8' => Code::Digit8,
-                '9' => Code::Digit9,
-                _ => unreachable!(),
-            });
-        }
-    }
-
-    Err(AppError::ConfigError(format!("不支持的按键: {}", key)))
 }
 
 /// 填充文本到当前焦点输入框（需要 AppHandle 访问剪贴板）
