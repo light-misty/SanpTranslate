@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { enable as autostartEnable, disable as autostartDisable, isEnabled as autostartIsEnabled } from '@tauri-apps/plugin-autostart'
 
 /** 应用配置，与后端 Rust AppConfig 结构体保持一致 */
@@ -285,4 +286,14 @@ export async function checkShortcutConflict(shortcut: string): Promise<boolean> 
 /** 保存快捷填充配置并重新注册快捷键 */
 export async function saveQuickFills(quickFills: QuickFillEntry[]): Promise<void> {
   return invoke('save_quick_fills', { quickFills })
+}
+
+/** 设置快捷键录制状态：录制期间全局快捷键按下将以事件形式转发到前端，不再执行业务功能 */
+export async function setShortcutRecording(recording: boolean): Promise<void> {
+  return invoke('set_shortcut_recording', { recording })
+}
+
+/** 监听后端转发的已注册快捷键按下事件（后端格式字符串，如 "Ctrl+Alt+1"），返回取消监听函数 */
+export async function onShortcutRecord(callback: (shortcut: string) => void): Promise<UnlistenFn> {
+  return listen<string>('shortcut-record', (event) => callback(event.payload))
 }

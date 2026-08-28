@@ -82,6 +82,10 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
                     if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        // 快捷键录制期间：将按键转发给前端录制组件，不执行业务功能
+                        if hotkey::emit_recorded_shortcut(app, shortcut) {
+                            return;
+                        }
                         hotkey::handle_shortcut_event(app, shortcut);
                         quickfill::handle_quick_fill_shortcut(app, shortcut);
                     }
@@ -92,6 +96,8 @@ pub fn run() {
         .manage(Mutex::new(window::CachedScreenStore::default()))
         .manage(Mutex::new(tray::TrayState::default()))
         .manage(std::sync::Arc::new(Mutex::new(quickfill::QuickFillShortcuts::default())))
+        // 快捷键录制状态：录制期间全局快捷键按下改为转发事件，供前端 ShortcutInput 使用
+        .manage(std::sync::Arc::new(Mutex::new(false)))
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::save_config,
@@ -119,6 +125,7 @@ pub fn run() {
             commands::restart_app,
             commands::reveal_in_explorer,
             commands::check_shortcut_conflict,
+            commands::set_shortcut_recording,
             commands::save_quick_fills
         ])
         .setup(|app| {

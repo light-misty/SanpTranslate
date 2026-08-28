@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -536,6 +537,60 @@ pub fn parse_key_code(key: &str) -> Result<Code, AppError> {
     )))
 }
 
+/// 将 Code 转回显示名称（与前端 ShortcutInput 的 keyCodeMap 保持一致）
+pub fn code_to_key_name(code: Code) -> String {
+    let debug = format!("{:?}", code);
+    // "KeyA" -> "A"；"Digit1" -> "1"；"F5" -> 原样
+    debug
+        .strip_prefix("Key")
+        .or_else(|| debug.strip_prefix("Digit"))
+        .map(str::to_string)
+        .unwrap_or(debug)
+}
+
+/// 将 Shortcut 序列化为后端格式字符串（如 "Ctrl+Alt+1"），用于录制事件转发
+pub fn shortcut_to_string(shortcut: &Shortcut) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if shortcut.mods.contains(Modifiers::CONTROL) {
+        parts.push("Ctrl".to_string());
+    }
+    if shortcut.mods.contains(Modifiers::ALT) {
+        parts.push("Alt".to_string());
+    }
+    if shortcut.mods.contains(Modifiers::SHIFT) {
+        parts.push("Shift".to_string());
+    }
+    if shortcut.mods.contains(Modifiers::SUPER) {
+        parts.push("Win".to_string());
+    }
+    parts.push(code_to_key_name(shortcut.key));
+    parts.join("+")
+}
+
+/// 查询快捷键录制状态是否开启
+pub fn is_shortcut_recording(app: &tauri::AppHandle) -> bool {
+    if let Some(state) = app.try_state::<Arc<Mutex<bool>>>() {
+        if let Ok(recording) = state.lock() {
+            return *recording;
+        }
+    }
+    false
+}
+
+/// 录制状态下将按下的快捷键序列化并广播给前端录制组件。
+/// 返回 true 表示已消费该按键（录制中），调用方不应再执行业务功能。
+pub fn emit_recorded_shortcut(app: &tauri::AppHandle, shortcut: &Shortcut) -> bool {
+    if !is_shortcut_recording(app) {
+        return false;
+    }
+    let shortcut_str = shortcut_to_string(shortcut);
+    log::debug!("[HOTKEY] 录制中转发快捷键事件: {}", shortcut_str);
+    if let Err(e) = app.emit("shortcut-record", shortcut_str) {
+        log::error!("[HOTKEY] 广播录制快捷键事件失败: {}", e);
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -616,5 +671,29 @@ mod tests {
     fn test_parse_key_code_invalid() {
         let err = parse_key_code("Space").unwrap_err();
         assert!(err.to_string().contains("不支持的按键"));
+    }
+
+    #[test]
+    fn test_shortcut_to_string_ctrl_alt_digit() {
+        let s = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Digit1);
+        assert_eq!(shortcut_to_string(&s), "Ctrl+Alt+1");
+    }
+
+    #[test]
+    fn test_shortcut_to_string_win_alpha() {
+        let s = Shortcut::new(Some(Modifiers::SUPER), Code::KeyA);
+        assert_eq!(shortcut_to_string(&s), "Win+A");
+    }
+
+    #[test]
+    fn test_shortcut_to_string_no_modifier() {
+        let s = Shortcut::new(Some(Modifiers::empty()), Code::Digit3);
+        assert_eq!(shortcut_to_string(&s), "3");
+    }
+
+    #[test]
+    fn test_shortcut_to_string_shift_function_key() {
+        let s = Shortcut::new(Some(Modifiers::SHIFT), Code::F5);
+        assert_eq!(shortcut_to_string(&s), "Shift+F5");
     }
 }

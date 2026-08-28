@@ -13,6 +13,8 @@ vi.mock('@/utils/tauri', async (importOriginal) => {
     getConfig: vi.fn(),
     saveQuickFills: vi.fn(),
     checkShortcutConflict: vi.fn().mockResolvedValue(false),
+    setShortcutRecording: vi.fn().mockResolvedValue(undefined),
+    onShortcutRecord: vi.fn().mockResolvedValue(() => {}),
   }
 })
 

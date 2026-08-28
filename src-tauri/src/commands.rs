@@ -807,6 +807,21 @@ pub fn check_shortcut_conflict(shortcut: String, app: tauri::AppHandle) -> Resul
     }
 }
 
+/// 设置快捷键录制状态。
+///
+/// 录制期间（recording=true），全局快捷键按下时不再执行业务功能，
+/// 而是由后端将按键序列化后广播到前端录制组件（解决已注册快捷键被系统劫持无法录制的问题）。
+#[tauri::command]
+pub fn set_shortcut_recording(recording: bool, app: tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<std::sync::Arc<std::sync::Mutex<bool>>>();
+    let mut current = state
+        .lock()
+        .map_err(|e| format!("锁定快捷键录制状态失败: {}", e))?;
+    *current = recording;
+    log::debug!("[CMD] set_shortcut_recording: {}", recording);
+    Ok(())
+}
+
 /// 保存快捷填充配置并重新注册快捷键
 #[tauri::command]
 pub fn save_quick_fills(

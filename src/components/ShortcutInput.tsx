@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { checkShortcutConflict } from '@/utils/tauri'
+import { checkShortcutConflict, onShortcutRecord, setShortcutRecording } from '@/utils/tauri'
 import './ShortcutInput.css'
 
 /** 快捷键输入组件属性 */
@@ -87,6 +87,8 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
   const [isRecording, setIsRecording] = useState(false)
   const [isOccupied, setIsOccupied] = useState(false)
   const pressedModifiers = useRef<Set<string>>(new Set())
+  // 同步录制状态供事件回调读取（避免闭包捕获过期值）
+  const isRecordingRef = useRef(false)
 
   // 显示值：优先显示格式化后的快捷键，否则为占位提示
   const displayValue = value ? formatShortcut(value) : ''
@@ -115,9 +117,41 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
     }
   }, [value])
 
+  // 录制状态同步到 ref，并通知后端：录制期间全局快捷键按下改为事件转发
+  useEffect(() => {
+    isRecordingRef.current = isRecording
+    setShortcutRecording(isRecording).catch(() => {
+      // 非 Tauri 环境（单元测试/浏览器预览）下忽略
+    })
+  }, [isRecording])
+
+  // 监听后端转发的已注册快捷键事件：
+  // 当目标快捷键已被全局注册时，按键会被系统热键劫持，WebView 收不到 keydown，
+  // 需通过事件通道获取按键并回填
+  useEffect(() => {
+    let active = true
+    let unlisten: (() => void) | undefined
+    onShortcutRecord((recorded) => {
+      if (!active || !isRecordingRef.current) return
+      onChange(recorded)
+      stopRecording()
+    })
+      .then((fn) => {
+        if (active) unlisten = fn
+      })
+      .catch(() => {
+        // 非 Tauri 环境（单元测试/浏览器预览）下忽略
+      })
+    return () => {
+      active = false
+      unlisten?.()
+    }
+  }, [onChange])
+
   /** 停止录制并清空按键状态 */
   function stopRecording() {
     setIsRecording(false)
+    isRecordingRef.current = false
     pressedModifiers.current.clear()
   }
 
@@ -173,6 +207,7 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
   /** 聚焦：开始录制并清空按键状态 */
   function onFocus() {
     setIsRecording(true)
+    isRecordingRef.current = true
     pressedModifiers.current.clear()
   }
 
