@@ -220,6 +220,15 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
     pressedModifiers.current.clear()
   }
 
+  /** 点击：已聚焦的元素不会重新派发 focus 事件，这里手动进入录制 */
+  function handleClick() {
+    if (isRecordingRef.current) return
+    inputRef.current?.focus()
+    setIsRecording(true)
+    isRecordingRef.current = true
+    pressedModifiers.current.clear()
+  }
+
   /** 失焦：停止录制 */
   function onBlur() {
     stopRecording()
@@ -249,6 +258,7 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
         onKeyUp={onKeyUp}
         onFocus={onFocus}
         onBlur={onBlur}
+        onClick={handleClick}
         ref={inputRef}
       >
         {isRecording ? (

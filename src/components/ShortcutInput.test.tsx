@@ -157,4 +157,21 @@ describe('ShortcutInput', () => {
     unmount()
     await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(false))
   })
+
+  it('已聚焦时再次点击仍重新进入录制（已有值场景）', async () => {
+    const onChange = vi.fn()
+    const { container } = render(<ShortcutInput value="Ctrl+Alt+1" onChange={onChange} />)
+
+    const input = container.querySelector('.shortcut-input') as HTMLElement
+    // 第一次点击进入录制并录制完成（显示新值后已停止录制，焦点仍在）
+    fireEvent.focus(input)
+    fireEvent.keyDown(input, { code: 'ControlLeft' })
+    fireEvent.keyDown(input, { code: 'AltLeft' })
+    fireEvent.keyDown(input, { code: 'Digit2' })
+    await waitFor(() => expect(screen.queryByText('请按下快捷键...')).toBeNull())
+
+    // 再次点击（已聚焦，浏览器不会重新派发 focus）应重新进入录制
+    fireEvent.click(input)
+    expect(screen.getByText('请按下快捷键...')).toBeDefined()
+  })
 })
