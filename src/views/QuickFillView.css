@@ -13,6 +13,14 @@
 .quickfill-header {
   margin-bottom: 16px;
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.quickfill-header-text {
+  min-width: 0;
 }
 
 .quickfill-title {
@@ -123,6 +131,7 @@
   font-family: inherit;
   resize: vertical;
   min-height: 36px;
+  max-height: 200px;
   transition: border-color 0.2s;
   box-sizing: border-box;
   /* 隐藏滚动条（保留滚动能力） */

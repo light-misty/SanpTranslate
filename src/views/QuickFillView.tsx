@@ -8,6 +8,17 @@ import './QuickFillView.css'
 
 const TAG = 'QuickFillView'
 
+/** 填充文本输入框的最大高度（px），超出后内部滚动 */
+const TEXTAREA_MAX_HEIGHT = 200
+
+/** 根据内容自适应调整文本输入框高度（受最大高度限制） */
+function autoResizeTextarea(el: HTMLTextAreaElement | null) {
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`
+  el.style.overflowY = 'auto'
+}
+
 /** 快捷填充配置窗口视图：配置快捷键和填充文本的映射 */
 export default function QuickFillView() {
   const { t } = useTranslation()
@@ -32,6 +43,13 @@ export default function QuickFillView() {
       setLoading(false)
     }
   }
+
+  // 条目内容变化后重新计算所有输入框高度（文本加载/增删改时生效）
+  useEffect(() => {
+    document.querySelectorAll('.quickfill-textarea').forEach((el) => {
+      autoResizeTextarea(el as HTMLTextAreaElement)
+    })
+  }, [entries])
 
   /**
    * 校验快捷键配置：条目之间重复、与系统主快捷键冲突。
@@ -118,8 +136,18 @@ export default function QuickFillView() {
   return (
     <div className="quickfill-container">
       <div className="quickfill-header">
-        <h2 className="quickfill-title">{t('quickFill.title')}</h2>
-        <p className="quickfill-description">{t('quickFill.description')}</p>
+        <div className="quickfill-header-text">
+          <h2 className="quickfill-title">{t('quickFill.title')}</h2>
+          <p className="quickfill-description">{t('quickFill.description')}</p>
+        </div>
+        {/* 添加条目按钮放置在标题右侧，右对齐 */}
+        <button className="quickfill-add-btn" onClick={addEntry}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          {t('quickFill.addEntry')}
+        </button>
       </div>
 
       <div className="quickfill-list">
@@ -156,7 +184,11 @@ export default function QuickFillView() {
                     className="quickfill-textarea"
                     value={entry.text}
                     placeholder={t('quickFill.textPlaceholder')}
-                    onChange={(e) => updateEntry(index, 'text', e.target.value)}
+                    onChange={(e) => {
+                      updateEntry(index, 'text', e.target.value)
+                      // 输入时同步自适应高度
+                      autoResizeTextarea(e.target)
+                    }}
                     rows={2}
                   />
                 </div>
@@ -167,13 +199,6 @@ export default function QuickFillView() {
       </div>
 
       <div className="quickfill-actions">
-        <button className="quickfill-add-btn" onClick={addEntry}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {t('quickFill.addEntry')}
-        </button>
         <button
           className={`quickfill-save-btn${saveSuccess ? ' save-success' : ''}`}
           onClick={saveEntries}

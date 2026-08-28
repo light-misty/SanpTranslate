@@ -78,6 +78,15 @@ describe('QuickFillView', () => {
     expect(document.querySelectorAll('.quickfill-remove-btn')).toHaveLength(1)
   })
 
+  it('添加条目按钮位于页面头部右侧', async () => {
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    const addBtn = screen.getByText('添加条目').closest('button') as HTMLElement
+    const header = document.querySelector('.quickfill-header')
+    expect(header?.contains(addBtn)).toBe(true)
+  })
+
   it('删除条目后该条目消失', async () => {
     mockedGetConfig.mockResolvedValue(makeConfig([{ shortcut: 'Ctrl+Alt+1', text: 'a' }]))
 
