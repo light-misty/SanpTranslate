@@ -175,6 +175,55 @@
   color: #1890ff;
 }
 
+/* 内置模板区块 */
+.quickfill-templates {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+.quickfill-templates-label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+}
+
+.quickfill-template-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  background: #2a2a2a;
+  border-radius: 6px;
+}
+
+.quickfill-template-title {
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.quickfill-template-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.quickfill-template-status {
+  font-size: 12px;
+  color: #666;
+}
+
+.quickfill-template-status.enabled {
+  color: #52c41a;
+}
+
 /* 滚动条样式 */
 .quickfill-list::-webkit-scrollbar {
   width: 6px;

@@ -173,5 +173,8 @@ export default {
     duplicateShortcut: '条目 #{first} 与条目 #{second} 使用了相同的快捷键 {shortcut}，请更换',
     conflictWithMain: '快捷键 {shortcut} 与系统主快捷键冲突，请更换',
     saveFailed: '保存失败：{error}',
+    templates: '内置模板',
+    templateEnabled: '已启用',
+    templateDisabled: '未启用',
   },
 }

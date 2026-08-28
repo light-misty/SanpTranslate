@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { fireEvent } from '@testing-library/react'
 import i18n from '@/i18n'
-import QuickFillView from './QuickFillView'
+import QuickFillView, { QUICK_FILL_TEMPLATES } from './QuickFillView'
 import * as tauri from '@/utils/tauri'
 
 // antd message 在 jsdom 环境依赖 matchMedia，这里 mock 掉以可控地断言提示调用
@@ -190,5 +190,57 @@ describe('QuickFillView', () => {
         ),
       { timeout: 2000 }
     )
+  })
+
+  it('渲染内置模板区块（默认未启用）', async () => {
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+
+    // 模板标题与未启用状态可见，开关未勾选
+    expect(screen.getByText('创建工作树提示词')).toBeDefined()
+    expect(screen.getByText('未启用')).toBeDefined()
+    const checkbox = document.querySelector('.quickfill-template-switch input') as HTMLInputElement
+    expect(checkbox.checked).toBe(false)
+  })
+
+  it('启用模板后生成可配置条目并自动保存', async () => {
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    const checkbox = document.querySelector('.quickfill-template-switch input') as HTMLInputElement
+    fireEvent.click(checkbox)
+
+    // 生成了包含模板文本的条目
+    const textarea = document.querySelector('.quickfill-textarea') as HTMLTextAreaElement
+    expect(textarea).toBeTruthy()
+    expect(textarea.value).toBe(QUICK_FILL_TEMPLATES[0].text)
+
+    // 自动保存携带该条目
+    await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
+    expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([
+      { shortcut: '', text: QUICK_FILL_TEMPLATES[0].text },
+    ])
+  })
+
+  it('禁用模板后移除对应条目并自动保存', async () => {
+    mockedGetConfig.mockResolvedValue(
+      makeConfig([{ shortcut: 'Ctrl+Alt+1', text: QUICK_FILL_TEMPLATES[0].text }])
+    )
+
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    const checkbox = document.querySelector('.quickfill-template-switch input') as HTMLInputElement
+    expect(checkbox.checked).toBe(true)
+
+    fireEvent.click(checkbox)
+
+    // 条目被移除，列表回到空状态
+    expect(screen.getByText('暂无配置，点击下方按钮添加')).toBeDefined()
+
+    // 自动保存携带空条目列表
+    await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
+    expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([])
   })
 })

@@ -173,5 +173,8 @@ export default {
     duplicateShortcut: 'Entry #{first} and entry #{second} use the same shortcut {shortcut}, please change it',
     conflictWithMain: 'Shortcut {shortcut} conflicts with a main shortcut of the app, please change it',
     saveFailed: 'Save failed: {error}',
+    templates: 'Built-in Templates',
+    templateEnabled: 'Enabled',
+    templateDisabled: 'Disabled',
   },
 }
