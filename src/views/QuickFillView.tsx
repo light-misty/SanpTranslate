@@ -61,8 +61,8 @@ export default function QuickFillView() {
   const [mainShortcuts, setMainShortcuts] = useState<ShortcutConfig>()
   // 自动保存防抖定时器
   const saveTimerRef = useRef<number>()
-  // 标记"刚加载完成的那次 entries 变化"不触发自动保存
-  const skipNextAutoSaveRef = useRef(false)
+  // 跳过"挂载初始渲染"与"加载完成"的 entries 变化，避免打开页面即覆盖配置
+  const skipNextAutoSaveRef = useRef(true)
 
   /** 加载配置 */
   async function loadConfig() {

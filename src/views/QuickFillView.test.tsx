@@ -204,6 +204,17 @@ describe('QuickFillView', () => {
     expect(checkbox.checked).toBe(false)
   })
 
+  it('打开页面时不会立即自动保存（仅在用户修改后保存）', async () => {
+    mockedGetConfig.mockResolvedValue(makeConfig([{ shortcut: 'Ctrl+Alt+1', text: '原始文本' }]))
+
+    render(<QuickFillView />)
+
+    await screen.findByText('Ctrl + Alt + 1')
+    // 等待超过防抖窗口，确认不会因页面打开/加载就覆盖配置
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    expect(mockedSaveQuickFills).not.toHaveBeenCalled()
+  })
+
   it('启用模板后生成可配置条目并自动保存', async () => {
     render(<QuickFillView />)
 
