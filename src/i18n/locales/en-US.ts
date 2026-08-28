@@ -170,5 +170,8 @@ export default {
     save: 'Save Configuration',
     saved: 'Saved',
     empty: 'No configuration yet, click the button below to add',
+    duplicateShortcut: 'Entry #{first} and entry #{second} use the same shortcut {shortcut}, please change it',
+    conflictWithMain: 'Shortcut {shortcut} conflicts with a main shortcut of the app, please change it',
+    saveFailed: 'Save failed: {error}',
   },
 }

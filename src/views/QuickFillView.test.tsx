@@ -5,6 +5,12 @@ import i18n from '@/i18n'
 import QuickFillView from './QuickFillView'
 import * as tauri from '@/utils/tauri'
 
+// antd message 在 jsdom 环境依赖 matchMedia，这里 mock 掉以可控地断言提示调用
+const { antdMessage } = vi.hoisted(() => ({
+  antdMessage: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() },
+}))
+vi.mock('antd', () => ({ message: antdMessage }))
+
 // @/utils/tauri 的命令绑定依赖 Tauri 运行时，Node/jsdom 测试环境中 mock 掉
 vi.mock('@/utils/tauri', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/utils/tauri')>()
@@ -102,5 +108,62 @@ describe('QuickFillView', () => {
     fireEvent.click(screen.getByText('保存配置'))
 
     expect(await screen.findByText('已保存')).toBeDefined()
+  })
+
+  it('两个条目快捷键相同时保存被拦截并给出提示', async () => {
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    fireEvent.click(screen.getByText('添加条目'))
+    fireEvent.click(screen.getByText('添加条目'))
+
+    const inputs = document.querySelectorAll('.shortcut-input') as NodeListOf<HTMLElement>
+    // 第一条目录制 Ctrl+Alt+1
+    fireEvent.focus(inputs[0])
+    fireEvent.keyDown(inputs[0], { code: 'ControlLeft' })
+    fireEvent.keyDown(inputs[0], { code: 'AltLeft' })
+    fireEvent.keyDown(inputs[0], { code: 'Digit1' })
+    // 第二条目录制相同的 Ctrl+Alt+1
+    fireEvent.focus(inputs[1])
+    fireEvent.keyDown(inputs[1], { code: 'ControlLeft' })
+    fireEvent.keyDown(inputs[1], { code: 'AltLeft' })
+    fireEvent.keyDown(inputs[1], { code: 'Digit1' })
+
+    fireEvent.click(screen.getByText('保存配置'))
+
+    expect(mockedSaveQuickFills).not.toHaveBeenCalled()
+    expect(antdMessage.warning).toHaveBeenCalledWith(expect.stringContaining('使用了相同的快捷键'))
+  })
+
+  it('快捷键与系统主快捷键冲突时保存被拦截', async () => {
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    fireEvent.click(screen.getByText('添加条目'))
+
+    // 录制 Ctrl+Alt+L（与 makeConfig 中默认截图快捷键冲突）
+    const input = document.querySelector('.shortcut-input') as HTMLElement
+    fireEvent.focus(input)
+    fireEvent.keyDown(input, { code: 'ControlLeft' })
+    fireEvent.keyDown(input, { code: 'AltLeft' })
+    fireEvent.keyDown(input, { code: 'KeyL' })
+
+    fireEvent.click(screen.getByText('保存配置'))
+
+    expect(mockedSaveQuickFills).not.toHaveBeenCalled()
+    expect(antdMessage.warning).toHaveBeenCalledWith(expect.stringContaining('主快捷键冲突'))
+  })
+
+  it('保存失败时显示后端返回的错误提示', async () => {
+    mockedSaveQuickFills.mockRejectedValue('快捷键已被占用')
+
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    fireEvent.click(screen.getByText('保存配置'))
+
+    await waitFor(() =>
+      expect(antdMessage.error).toHaveBeenCalledWith(expect.stringContaining('快捷键已被占用'))
+    )
   })
 })
