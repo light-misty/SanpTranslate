@@ -535,3 +535,86 @@ pub fn parse_key_code(key: &str) -> Result<Code, AppError> {
         key
     )))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tauri_plugin_global_shortcut::{Code, Modifiers};
+
+    fn assert_shortcut(s: Result<Shortcut, AppError>, mods: Modifiers, code: Code) {
+        let shortcut = s.unwrap_or_else(|e| panic!("解析快捷键失败: {}", e));
+        assert_eq!(shortcut.mods, mods, "修饰键不匹配");
+        assert_eq!(shortcut.key, code, "按键不匹配");
+    }
+
+    #[test]
+    fn test_parse_shortcut_ctrl_alt_digit() {
+        assert_shortcut(
+            parse_shortcut("Ctrl+Alt+1"),
+            Modifiers::CONTROL | Modifiers::ALT,
+            Code::Digit1,
+        );
+    }
+
+    #[test]
+    fn test_parse_shortcut_case_insensitive() {
+        assert_shortcut(
+            parse_shortcut("ctrl+shift+a"),
+            Modifiers::CONTROL | Modifiers::SHIFT,
+            Code::KeyA,
+        );
+    }
+
+    #[test]
+    fn test_parse_shortcut_super_modifier() {
+        assert_shortcut(parse_shortcut("Win+F5"), Modifiers::SUPER, Code::F5);
+    }
+
+    #[test]
+    fn test_parse_shortcut_meta_alias() {
+        // meta 与 win/super 等价，均映射为 SUPER 修饰键
+        assert_shortcut(parse_shortcut("Ctrl+Meta+M"), Modifiers::CONTROL | Modifiers::SUPER, Code::KeyM);
+    }
+
+    #[test]
+    fn test_parse_shortcut_missing_key_errors() {
+        let err = parse_shortcut("Ctrl+Alt").unwrap_err();
+        assert!(err.to_string().contains("快捷键缺少按键"));
+    }
+
+    #[test]
+    fn test_parse_shortcut_invalid_key_errors() {
+        let err = parse_shortcut("Ctrl+Alt+Space").unwrap_err();
+        assert!(err.to_string().contains("不支持的按键"));
+    }
+
+    #[test]
+    fn test_parse_key_code_alpha() {
+        assert_eq!(parse_key_code("a").unwrap(), Code::KeyA);
+        assert_eq!(parse_key_code("Z").unwrap(), Code::KeyZ);
+    }
+
+    #[test]
+    fn test_parse_key_code_digit() {
+        assert_eq!(parse_key_code("0").unwrap(), Code::Digit0);
+        assert_eq!(parse_key_code("9").unwrap(), Code::Digit9);
+    }
+
+    #[test]
+    fn test_parse_key_code_function_keys() {
+        assert_eq!(parse_key_code("F1").unwrap(), Code::F1);
+        assert_eq!(parse_key_code("f12").unwrap(), Code::F12);
+    }
+
+    #[test]
+    fn test_parse_key_code_function_out_of_range() {
+        let err = parse_key_code("F13").unwrap_err();
+        assert!(err.to_string().contains("不支持的功能键编号"));
+    }
+
+    #[test]
+    fn test_parse_key_code_invalid() {
+        let err = parse_key_code("Space").unwrap_err();
+        assert!(err.to_string().contains("不支持的按键"));
+    }
+}

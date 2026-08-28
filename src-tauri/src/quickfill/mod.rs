@@ -23,11 +23,16 @@ impl Default for QuickFillShortcuts {
 }
 
 /// 注册快捷填充快捷键
+///
+/// 注册前先注销自身的旧注册，避免 already-registered 冲突走脆弱重试路径；
+/// 注册失败时收集错误信息，全部处理完成后统一返回错误，避免静默失败。
 pub fn register_quick_fill_shortcuts(
     app: &tauri::AppHandle,
     entries: &[QuickFillEntry],
 ) -> Result<(), AppError> {
     let mut shortcuts_map = HashMap::new();
+    // 收集注册失败的快捷键，最后统一返回错误，让前端感知失败项
+    let mut errors: Vec<String> = Vec::new();
 
     for entry in entries {
         if entry.shortcut.is_empty() || entry.text.is_empty() {
@@ -36,7 +41,9 @@ pub fn register_quick_fill_shortcuts(
 
         match crate::hotkey::parse_shortcut(&entry.shortcut) {
             Ok(shortcut) => {
-                // 尝试注册快捷键
+                // 注册前先注销自身可能已存在的注册（如探测残留），避免 already-registered
+                let _ = app.global_shortcut().unregister(shortcut);
+
                 match app.global_shortcut().register(shortcut) {
                     Ok(()) => {
                         log::info!(
@@ -47,36 +54,19 @@ pub fn register_quick_fill_shortcuts(
                         shortcuts_map.insert(shortcut, entry.text.clone());
                     }
                     Err(e) => {
-                        let err_str = e.to_string();
-                        if err_str.contains("already registered") {
-                            log::warn!(
-                                "[QUICKFILL] 快捷键 {} 已被占用，尝试注销后重试...",
-                                entry.shortcut
-                            );
-                            // 先注销再重试
-                            let _ = app.global_shortcut().unregister(shortcut);
-                            std::thread::sleep(std::time::Duration::from_millis(200));
-                            match app.global_shortcut().register(shortcut) {
-                                Ok(()) => {
-                                    log::info!("[QUICKFILL] 快捷键 {} 重新注册成功", entry.shortcut);
-                                    shortcuts_map.insert(shortcut, entry.text.clone());
-                                }
-                                Err(e2) => {
-                                    log::error!(
-                                        "[QUICKFILL] 快捷键 {} 注册失败: {}",
-                                        entry.shortcut,
-                                        e2
-                                    );
-                                }
-                            }
-                        } else {
-                            log::error!("[QUICKFILL] 快捷键 {} 注册失败: {}", entry.shortcut, e);
-                        }
+                        let msg = format!(
+                            "[QUICKFILL] 快捷键 {} 注册失败（可能已被其他程序占用）: {}",
+                            entry.shortcut, e
+                        );
+                        log::error!("{}", msg);
+                        errors.push(msg);
                     }
                 }
             }
             Err(e) => {
-                log::error!("[QUICKFILL] 解析快捷键 {} 失败: {}", entry.shortcut, e);
+                let msg = format!("[QUICKFILL] 解析快捷键 {} 失败: {}", entry.shortcut, e);
+                log::error!("{}", msg);
+                errors.push(msg);
             }
         }
     }
@@ -87,6 +77,13 @@ pub fn register_quick_fill_shortcuts(
         AppError::ConfigError(format!("锁定 QuickFillShortcuts 失败: {}", e))
     })?;
     current.entries = shortcuts_map;
+
+    if !errors.is_empty() {
+        return Err(AppError::ConfigError(format!(
+            "部分快捷填充快捷键注册失败: {}",
+            errors.join("；")
+        )));
+    }
 
     Ok(())
 }
