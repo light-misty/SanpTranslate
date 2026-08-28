@@ -89,6 +89,9 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
   const pressedModifiers = useRef<Set<string>>(new Set())
   // 同步录制状态供事件回调读取（避免闭包捕获过期值）
   const isRecordingRef = useRef(false)
+  // 始终引用最新的 onChange，避免父组件函数变化导致事件监听被频繁重建
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   // 显示值：优先显示格式化后的快捷键，否则为占位提示
   const displayValue = value ? formatShortcut(value) : ''
@@ -117,12 +120,18 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
     }
   }, [value])
 
-  // 录制状态同步到 ref，并通知后端：录制期间全局快捷键按下改为事件转发
+  // 录制状态同步到 ref，并通知后端：录制期间全局快捷键按下改为事件转发。
+  // 录制中组件卸载/停止时通过 cleanup 复位后端状态，避免窗口关闭后录制标志残留
   useEffect(() => {
     isRecordingRef.current = isRecording
     setShortcutRecording(isRecording).catch(() => {
       // 非 Tauri 环境（单元测试/浏览器预览）下忽略
     })
+    if (!isRecording) return
+    return () => {
+      isRecordingRef.current = false
+      setShortcutRecording(false).catch(() => {})
+    }
   }, [isRecording])
 
   // 监听后端转发的已注册快捷键事件：
@@ -133,7 +142,7 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
     let unlisten: (() => void) | undefined
     onShortcutRecord((recorded) => {
       if (!active || !isRecordingRef.current) return
-      onChange(recorded)
+      onChangeRef.current(recorded)
       stopRecording()
     })
       .then((fn) => {
@@ -146,7 +155,7 @@ export default function ShortcutInput({ value, placeholder, onChange }: Shortcut
       active = false
       unlisten?.()
     }
-  }, [onChange])
+  }, [])
 
   /** 停止录制并清空按键状态 */
   function stopRecording() {

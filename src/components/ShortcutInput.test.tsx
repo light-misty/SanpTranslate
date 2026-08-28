@@ -145,4 +145,16 @@ describe('ShortcutInput', () => {
     fireEvent.blur(input)
     await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(false))
   })
+
+  it('录制中组件卸载后复位后端录制状态（避免窗口关闭残留）', async () => {
+    const { container, unmount } = render(<ShortcutInput value="" onChange={vi.fn()} />)
+
+    const input = container.querySelector('.shortcut-input') as HTMLElement
+    fireEvent.focus(input)
+    await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(true))
+
+    vi.clearAllMocks()
+    unmount()
+    await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(false))
+  })
 })

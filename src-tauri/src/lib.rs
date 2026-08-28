@@ -211,8 +211,11 @@ pub fn run() {
             hotkey::register_hotkeys(app.handle(), &app_config.shortcuts)?;
 
             // 注册快捷填充快捷键
+            // 注册失败（如与其他程序冲突）仅记录日志，不影响应用启动；用户可在快捷填充页面重新配置
             #[cfg(desktop)]
-            quickfill::register_quick_fill_shortcuts(app.handle(), &app_config.quick_fills)?;
+            if let Err(e) = quickfill::register_quick_fill_shortcuts(app.handle(), &app_config.quick_fills) {
+                log::error!("注册快捷填充快捷键失败: {}", e);
+            }
 
             // 自动更新检查（仅 release 模式且开启了自动更新时执行）
             #[cfg(all(desktop, not(debug_assertions)))]
