@@ -151,12 +151,6 @@ impl ConfigManager {
         Ok(())
     }
 
-    /// 获取配置文件目录路径
-    #[allow(dead_code)]
-    pub fn get_config_dir(&self) -> &PathBuf {
-        &self.config_dir
-    }
-
     /// 获取配置文件完整路径（用于前端显示）
     pub fn get_config_path(&self) -> &PathBuf {
         &self.config_path

@@ -106,7 +106,6 @@ pub fn run() {
             commands::get_config,
             commands::save_config,
             commands::write_clipboard_image,
-            commands::read_clipboard_image,
             commands::write_clipboard_text,
             commands::close_pin_window,
             commands::get_pin_image,

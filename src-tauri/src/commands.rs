@@ -44,11 +44,6 @@ pub fn write_clipboard_image(image_data: String, app: tauri::AppHandle) -> Resul
 }
 
 #[tauri::command]
-pub fn read_clipboard_image(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    crate::clipboard::read_clipboard_image(&app).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 pub fn write_clipboard_text(text: String, app: tauri::AppHandle) -> Result<(), String> {
     crate::clipboard::write_clipboard_text(&app, &text).map_err(|e| e.to_string())
 }

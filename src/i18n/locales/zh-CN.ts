@@ -167,8 +167,6 @@ export default {
     text: '填充文本',
     textPlaceholder: '输入要填充的文本内容...',
     addEntry: '添加条目',
-    save: '保存配置',
-    saved: '已保存',
     empty: '暂无配置，点击下方按钮添加',
     duplicateShortcut: '条目 #{first} 与条目 #{second} 使用了相同的快捷键 {shortcut}，请更换',
     conflictWithMain: '快捷键 {shortcut} 与系统主快捷键冲突，请更换',

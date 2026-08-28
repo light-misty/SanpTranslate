@@ -146,10 +146,6 @@ export async function writeClipboardImage(imageData: string): Promise<void> {
   return invoke('write_clipboard_image', { imageData })
 }
 
-export async function readClipboardImage(): Promise<string | null> {
-  return invoke<string | null>('read_clipboard_image')
-}
-
 export async function writeClipboardText(text: string): Promise<void> {
   return invoke('write_clipboard_text', { text })
 }
