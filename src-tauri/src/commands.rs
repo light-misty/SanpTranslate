@@ -845,9 +845,16 @@ pub fn save_quick_fills(
 
     // 注册新的快捷填充快捷键
     crate::quickfill::register_quick_fill_shortcuts(&app, &config.quick_fills)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            // 配置已写入，但注册存在失败项，返回错误让前端提示用户
+            log::error!("[CMD] save_quick_fills 注册失败: {}", e);
+            e.to_string()
+        })?;
 
-    log::info!("[CMD] 快捷填充配置已保存并重新注册");
+    log::info!(
+        "[CMD] 快捷填充配置已保存并重新注册，共 {} 条",
+        config.quick_fills.len()
+    );
     Ok(())
 }
 

@@ -584,6 +584,18 @@ pub fn is_shortcut_recording(app: &tauri::AppHandle) -> bool {
     false
 }
 
+/// 复位快捷键录制状态（窗口销毁等场景调用），防止录制标志残留导致业务快捷键被转发而失效
+pub fn reset_shortcut_recording(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<Arc<Mutex<bool>>>() {
+        if let Ok(mut recording) = state.lock() {
+            if *recording {
+                *recording = false;
+                log::debug!("[HOTKEY] 复位快捷键录制状态");
+            }
+        }
+    }
+}
+
 /// 录制状态下将按下的快捷键序列化并广播给前端录制组件。
 /// 返回 true 表示已消费该按键（录制中），调用方不应再执行业务功能。
 pub fn emit_recorded_shortcut(app: &tauri::AppHandle, shortcut: &Shortcut) -> bool {

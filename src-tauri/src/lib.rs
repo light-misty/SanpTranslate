@@ -82,6 +82,10 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
                     if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        log::debug!(
+                            "[HOTKEY] 全局快捷键按下: {}",
+                            hotkey::shortcut_to_string(shortcut)
+                        );
                         // 快捷键录制期间：将按键转发给前端录制组件，不执行业务功能
                         if hotkey::emit_recorded_shortcut(app, shortcut) {
                             return;
@@ -128,6 +132,12 @@ pub fn run() {
             commands::set_shortcut_recording,
             commands::save_quick_fills
         ])
+        // 任一窗口销毁时复位快捷键录制状态，避免录制标志残留导致快捷键被转发而失效
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                hotkey::reset_shortcut_recording(window.app_handle());
+            }
+        })
         .setup(|app| {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）
             #[cfg(desktop)]

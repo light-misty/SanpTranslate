@@ -100,40 +100,63 @@ pub fn unregister_quick_fill_shortcuts(app: &tauri::AppHandle) {
 
 /// 处理快捷填充快捷键事件
 pub fn handle_quick_fill_shortcut(app: &tauri::AppHandle, shortcut: &Shortcut) {
+    let pressed = crate::hotkey::shortcut_to_string(shortcut);
     let text_to_fill = {
         let state = match app.try_state::<Arc<Mutex<QuickFillShortcuts>>>() {
             Some(s) => s,
-            None => return,
+            None => {
+                log::debug!("[QUICKFILL] 按键 {} 触发但快捷填充状态不存在，忽略", pressed);
+                return;
+            }
         };
 
         let current = match state.lock() {
             Ok(c) => c,
-            Err(_) => return,
+            Err(_) => {
+                log::debug!("[QUICKFILL] 锁定快捷填充状态失败，忽略按键 {}", pressed);
+                return;
+            }
         };
 
         current.entries.get(shortcut).cloned()
     };
 
-    if let Some(text) = text_to_fill {
-        log::info!(
-            "[QUICKFILL] 快捷键触发，准备填充文本: {}",
-            text.chars().take(30).collect::<String>()
-        );
-        fill_text_with_app(app, &text);
+    match &text_to_fill {
+        Some(text) => {
+            log::info!(
+                "[QUICKFILL] 快捷键 {} 命中映射，准备填充: {}",
+                pressed,
+                text.chars().take(20).collect::<String>()
+            );
+            fill_text_with_app(app, text);
+        }
+        None => {
+            log::debug!("[QUICKFILL] 快捷键 {} 未命中任何快捷填充映射", pressed);
+        }
     }
 }
 
 /// 填充文本到当前焦点输入框（需要 AppHandle 访问剪贴板）
 /// 使用剪贴板 + 模拟粘贴的方式实现文本填充
 pub fn fill_text_with_app(app: &tauri::AppHandle, text: &str) {
+    log::info!(
+        "[QUICKFILL] 开始填充文本: {}",
+        text.chars().take(30).collect::<String>()
+    );
+
     // 使用剪贴板方式填充：先保存当前剪贴板内容，设置文本到剪贴板，模拟粘贴，然后恢复剪贴板
     let previous_clipboard = crate::clipboard::read_clipboard_text(app).ok();
+    log::debug!(
+        "[QUICKFILL] 读取原剪贴板结果: {}",
+        if previous_clipboard.is_some() { "成功" } else { "无内容或失败" }
+    );
 
     // 写入要填充的文本到剪贴板
     if let Err(e) = crate::clipboard::write_clipboard_text(app, text) {
         log::error!("[QUICKFILL] 写入剪贴板失败: {}", e);
         return;
     }
+    log::debug!("[QUICKFILL] 已写入剪贴板，开始模拟 Ctrl+V");
 
     // 模拟 Ctrl+V 粘贴
     simulate_paste();
@@ -143,7 +166,8 @@ pub fn fill_text_with_app(app: &tauri::AppHandle, text: &str) {
         let app_clone = app.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(150));
-            let _ = crate::clipboard::write_clipboard_text(&app_clone, &prev);
+            let result = crate::clipboard::write_clipboard_text(&app_clone, &prev);
+            log::debug!("[QUICKFILL] 恢复原剪贴板结果: {}", if result.is_ok() { "成功" } else { "失败" });
         });
     }
 }
