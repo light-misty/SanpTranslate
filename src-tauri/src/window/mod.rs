@@ -139,7 +139,8 @@ pub fn create_quick_fill_window(app: &AppHandle) -> Result<(), AppError> {
     WebviewWindowBuilder::new(app, "quick-fill", WebviewUrl::App("/quick-fill".into()))
         .title(title)
         .inner_size(550.0, 450.0)
-        .center()
+        // 打开时最大化显示，方便编辑多条填充配置
+        .maximized(true)
         .resizable(true)
         .build()
         .map_err(|e| AppError::ConfigError(format!("创建快捷填充配置窗口失败: {}", e)))?;
