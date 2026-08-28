@@ -120,17 +120,24 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
 }
 
 /// 重新注册快捷键（配置变更后调用）
+///
+/// 仅注销/注册主快捷键（截图/剪贴板贴图/文本翻译），不使用 unregister_all()，
+/// 避免误注销快捷填充等其它模块注册的全局快捷键。
 pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -> Result<(), AppError> {
     let new_capture = parse_shortcut(&new_config.capture)?;
     let new_pin = parse_shortcut(&new_config.pin_clipboard)?;
     let new_text_translate = parse_shortcut(&new_config.text_translate)?;
 
-    // 注销所有已注册的快捷键
-    app.global_shortcut()
-        .unregister_all()
-        .map_err(|e| AppError::ConfigError(format!("注销快捷键失败: {}", e)))?;
+    // 注销旧的三个主快捷键（仅处理本模块曾注册的快捷键，不影响其它模块）
+    if let Some(shortcuts) = app.try_state::<Arc<Mutex<CurrentShortcuts>>>() {
+        if let Ok(current) = shortcuts.lock() {
+            let _ = app.global_shortcut().unregister(current.capture);
+            let _ = app.global_shortcut().unregister(current.pin_clipboard);
+            let _ = app.global_shortcut().unregister(current.text_translate);
+        }
+    }
 
-    // 注册新的快捷键
+    // 注册新的主快捷键
     app.global_shortcut()
         .register(new_capture)
         .map_err(|e| AppError::ConfigError(format!("注册截图快捷键失败: {}", e)))?;
