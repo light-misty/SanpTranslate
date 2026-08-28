@@ -97,29 +97,27 @@ describe('QuickFillView', () => {
     await waitFor(() => expect(screen.queryByText('Ctrl + Alt + 1')).toBeNull())
   })
 
-  it('修改填充文本后保存会携带最新条目调用 saveQuickFills', async () => {
+  it('修改填充文本后自动保存会携带最新条目', async () => {
     render(<QuickFillView />)
 
     await screen.findByText('快捷文本填充')
     fireEvent.click(screen.getByText('添加条目'))
     const textarea = document.querySelector('.quickfill-textarea') as HTMLTextAreaElement
     fireEvent.change(textarea, { target: { value: '填充内容' } })
-    fireEvent.click(screen.getByText('保存配置'))
 
-    await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled())
+    // 防抖 500ms 后自动保存
+    await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
     expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([{ shortcut: '', text: '填充内容' }])
   })
 
-  it('保存成功后显示已保存提示', async () => {
+  it('页面不再显示保存配置按钮（自动保存）', async () => {
     render(<QuickFillView />)
 
     await screen.findByText('快捷文本填充')
-    fireEvent.click(screen.getByText('保存配置'))
-
-    expect(await screen.findByText('已保存')).toBeDefined()
+    expect(screen.queryByText('保存配置')).toBeNull()
   })
 
-  it('两个条目快捷键相同时保存被拦截并给出提示', async () => {
+  it('两个条目快捷键相同时自动保存被拦截并给出提示', async () => {
     render(<QuickFillView />)
 
     await screen.findByText('快捷文本填充')
@@ -138,13 +136,21 @@ describe('QuickFillView', () => {
     fireEvent.keyDown(inputs[1], { code: 'AltLeft' })
     fireEvent.keyDown(inputs[1], { code: 'Digit1' })
 
-    fireEvent.click(screen.getByText('保存配置'))
+    // 修改文本触发一次明确的 entries 变化，进入防抖保存
+    const textarea = document.querySelector('.quickfill-textarea') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: 'x' } })
 
+    await waitFor(
+      () =>
+        expect(antdMessage.warning).toHaveBeenCalledWith(
+          expect.stringContaining('使用了相同的快捷键')
+        ),
+      { timeout: 2000 }
+    )
     expect(mockedSaveQuickFills).not.toHaveBeenCalled()
-    expect(antdMessage.warning).toHaveBeenCalledWith(expect.stringContaining('使用了相同的快捷键'))
   })
 
-  it('快捷键与系统主快捷键冲突时保存被拦截', async () => {
+  it('快捷键与系统主快捷键冲突时自动保存被拦截', async () => {
     render(<QuickFillView />)
 
     await screen.findByText('快捷文本填充')
@@ -157,22 +163,32 @@ describe('QuickFillView', () => {
     fireEvent.keyDown(input, { code: 'AltLeft' })
     fireEvent.keyDown(input, { code: 'KeyL' })
 
-    fireEvent.click(screen.getByText('保存配置'))
-
+    await waitFor(
+      () =>
+        expect(antdMessage.warning).toHaveBeenCalledWith(
+          expect.stringContaining('主快捷键冲突')
+        ),
+      { timeout: 2000 }
+    )
     expect(mockedSaveQuickFills).not.toHaveBeenCalled()
-    expect(antdMessage.warning).toHaveBeenCalledWith(expect.stringContaining('主快捷键冲突'))
   })
 
-  it('保存失败时显示后端返回的错误提示', async () => {
+  it('自动保存失败时显示后端返回的错误提示', async () => {
     mockedSaveQuickFills.mockRejectedValue('快捷键已被占用')
 
     render(<QuickFillView />)
 
     await screen.findByText('快捷文本填充')
-    fireEvent.click(screen.getByText('保存配置'))
+    fireEvent.click(screen.getByText('添加条目'))
+    const textarea = document.querySelector('.quickfill-textarea') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: 'x' } })
 
-    await waitFor(() =>
-      expect(antdMessage.error).toHaveBeenCalledWith(expect.stringContaining('快捷键已被占用'))
+    await waitFor(
+      () =>
+        expect(antdMessage.error).toHaveBeenCalledWith(
+          expect.stringContaining('快捷键已被占用')
+        ),
+      { timeout: 2000 }
     )
   })
 })

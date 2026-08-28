@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { message } from 'antd'
 import { getConfig, saveQuickFills, type QuickFillEntry, type ShortcutConfig } from '@/utils/tauri'
@@ -25,15 +25,18 @@ export default function QuickFillView() {
 
   const [entries, setEntries] = useState<QuickFillEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
   // 主快捷键配置，用于保存时冲突校验
   const [mainShortcuts, setMainShortcuts] = useState<ShortcutConfig>()
+  // 自动保存防抖定时器
+  const saveTimerRef = useRef<number>()
+  // 标记"刚加载完成的那次 entries 变化"不触发自动保存
+  const skipNextAutoSaveRef = useRef(false)
 
   /** 加载配置 */
   async function loadConfig() {
     try {
       const config = await getConfig()
+      skipNextAutoSaveRef.current = true
       setEntries(config.quick_fills || [])
       setMainShortcuts(config.shortcuts)
       logger.info(TAG, `加载快捷填充配置，共 ${config.quick_fills?.length || 0} 条`)
@@ -49,6 +52,26 @@ export default function QuickFillView() {
     document.querySelectorAll('.quickfill-textarea').forEach((el) => {
       autoResizeTextarea(el as HTMLTextAreaElement)
     })
+  }, [entries])
+
+  // 条目变化后防抖自动保存（500ms），不再需要手动点击保存按钮
+  useEffect(() => {
+    if (skipNextAutoSaveRef.current) {
+      // 跳过首次加载完成后的那次触发
+      skipNextAutoSaveRef.current = false
+      return
+    }
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current)
+    }
+    saveTimerRef.current = window.setTimeout(() => {
+      void autoSave(entries)
+    }, 500)
+    return () => {
+      if (saveTimerRef.current) {
+        window.clearTimeout(saveTimerRef.current)
+      }
+    }
   }, [entries])
 
   /**
@@ -77,30 +100,23 @@ export default function QuickFillView() {
     return null
   }
 
-  /** 保存配置 */
-  async function saveEntries() {
+  /** 自动保存：校验冲突后调用后端保存，失败时提示 */
+  async function autoSave(list: QuickFillEntry[]) {
     // 保存前校验快捷键冲突，冲突时中止并提示
-    const conflict = validateShortcuts(entries)
+    const conflict = validateShortcuts(list)
     if (conflict) {
       message.warning(conflict)
-      logger.warn(TAG, `保存被拦截: ${conflict}`)
+      logger.warn(TAG, `自动保存被拦截: ${conflict}`)
       return
     }
 
-    setSaving(true)
-    setSaveSuccess(false)
     try {
-      await saveQuickFills(entries)
-      setSaveSuccess(true)
-      logger.info(TAG, '快捷填充配置已保存')
-      // 2 秒后清除成功提示
-      setTimeout(() => setSaveSuccess(false), 2000)
+      await saveQuickFills(list)
+      logger.info(TAG, `快捷填充配置已自动保存，共 ${list.length} 条`)
     } catch (err) {
       const errorMsg = String(err)
-      logger.error(TAG, `保存配置失败: ${errorMsg}`)
+      logger.error(TAG, `自动保存失败: ${errorMsg}`)
       message.error(t('quickFill.saveFailed', { error: errorMsg }))
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -196,16 +212,6 @@ export default function QuickFillView() {
             </div>
           ))
         )}
-      </div>
-
-      <div className="quickfill-actions">
-        <button
-          className={`quickfill-save-btn${saveSuccess ? ' save-success' : ''}`}
-          onClick={saveEntries}
-          disabled={saving}
-        >
-          {saving ? t('common.loading') : saveSuccess ? t('quickFill.saved') : t('quickFill.save')}
-        </button>
       </div>
     </div>
   )

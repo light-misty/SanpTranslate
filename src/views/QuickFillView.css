@@ -155,14 +155,6 @@
   color: #555;
 }
 
-.quickfill-actions {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
-  padding-top: 12px;
-  border-top: 1px solid #333;
-}
-
 .quickfill-add-btn {
   display: flex;
   align-items: center;
@@ -174,38 +166,13 @@
   color: #888;
   font-size: 13px;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s;
 }
 
 .quickfill-add-btn:hover {
   border-color: #1890ff;
   color: #1890ff;
-}
-
-.quickfill-save-btn {
-  flex: 1;
-  padding: 8px 20px;
-  background: #1890ff;
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quickfill-save-btn:hover:not(:disabled) {
-  background: #40a9ff;
-}
-
-.quickfill-save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.quickfill-save-btn.save-success {
-  background: #52c41a;
 }
 
 /* 滚动条样式 */
