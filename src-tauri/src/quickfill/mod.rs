@@ -60,6 +60,12 @@ pub fn register_quick_fill_shortcuts(
                             "[QUICKFILL] 快捷键 {} 注册失败（可能已被其他程序占用）: {}",
                             entry.shortcut, e
                         );
+                        // macOS 注册全局快捷键需要辅助功能权限，失败时给出引导提示
+                        #[cfg(target_os = "macos")]
+                        let msg = format!(
+                            "{} 请前往 系统设置 > 隐私与安全性 > 辅助功能 为本应用授权后重试",
+                            msg
+                        );
                         log::error!("{}", msg);
                         errors.push(msg);
                     }
@@ -161,7 +167,11 @@ pub fn fill_text_with_app(app: &tauri::AppHandle, text: &str) {
     log::debug!("[QUICKFILL] 已写入剪贴板，开始模拟 Ctrl+V");
 
     // 模拟 Ctrl+V 粘贴
-    simulate_paste();
+    let paste_ok = simulate_paste();
+    log::debug!(
+        "[QUICKFILL] 模拟粘贴结果: {}",
+        if paste_ok { "已注入" } else { "注入失败" }
+    );
 
     // 延迟恢复剪贴板内容（等待目标窗口完成粘贴，350ms 后恢复）
     if let Some(prev) = previous_clipboard {
@@ -174,8 +184,12 @@ pub fn fill_text_with_app(app: &tauri::AppHandle, text: &str) {
     }
 }
 
-/// 模拟 Ctrl+V 粘贴操作
-fn simulate_paste() {
+/// 模拟 Ctrl+V 粘贴操作，返回是否成功注入按键
+///
+/// - Windows：keybd_event 注入，先释放热键触发时的修饰键避免组合误判；
+/// - macOS：osascript 模拟，需要辅助功能权限；
+/// - Linux：xdotool 注入，Wayland 会话下仅对 XWayland 程序有效。
+fn simulate_paste() -> bool {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
@@ -198,6 +212,7 @@ fn simulate_paste() {
             // 释放 Ctrl
             keybd_event(VK_CONTROL as u8, 0, KEYEVENTF_KEYUP, 0);
         }
+        true
     }
 
     #[cfg(target_os = "macos")]
@@ -205,13 +220,71 @@ fn simulate_paste() {
         // macOS 使用 AppleScript 模拟粘贴
         use std::process::Command;
         let script = r#"tell application "System Events" to keystroke "v" using command down"#;
-        let _ = Command::new("osascript").arg("-e").arg(script).output();
+        match Command::new("osascript").arg("-e").arg(script).output() {
+            Ok(_) => true,
+            Err(e) => {
+                log::error!(
+                    "[QUICKFILL] macOS 模拟粘贴失败，请确认已授予辅助功能权限: {}",
+                    e
+                );
+                false
+            }
+        }
     }
 
     #[cfg(target_os = "linux")]
     {
         // Linux 使用 xdotool 模拟粘贴
         use std::process::Command;
-        let _ = Command::new("xdotool").args(["key", "ctrl+v"]).output();
+        // Wayland 会话下 xdotool 无法注入到原生 Wayland 应用（XWayland 程序仍可用）
+        if is_wayland_session() {
+            log::warn!(
+                "[QUICKFILL] 检测到 Wayland 会话，xdotool 模拟粘贴可能对原生 Wayland 应用无效"
+            );
+        }
+        match Command::new("xdotool").args(["key", "ctrl+v"]).output() {
+            Ok(_) => true,
+            Err(e) => {
+                log::error!("[QUICKFILL] Linux 模拟粘贴失败（缺少 xdotool？）: {}", e);
+                false
+            }
+        }
+    }
+}
+
+/// 根据会话环境变量判断是否为 Wayland 会话（纯逻辑，便于测试）。
+/// 仅 Linux 下参与编译；测试环境下任意平台可用（便于本地验证逻辑）。
+#[cfg(any(target_os = "linux", test))]
+fn wayland_by_env(session_type: &str, wayland_display: &str, gdk_backend: &str) -> bool {
+    (session_type == "wayland" || !wayland_display.is_empty()) && gdk_backend != "x11"
+}
+
+/// 检测当前是否运行在 Wayland 会话（Linux 下模拟粘贴能力受其影响）
+#[cfg(target_os = "linux")]
+pub(crate) fn is_wayland_session() -> bool {
+    let session_type = std::env::var("XDG_SESSION_TYPE").unwrap_or_default();
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let gdk_backend = std::env::var("GDK_BACKEND").unwrap_or_default();
+    wayland_by_env(&session_type, &wayland_display, &gdk_backend)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_wayland_by_env_wayland_session() {
+        // WAYLAND_DISPLAY 存在或 XDG_SESSION_TYPE=wayland 均判定为 Wayland
+        assert!(wayland_by_env("wayland", "", ""));
+        assert!(wayland_by_env("", "wayland-0", ""));
+        assert!(wayland_by_env("wayland", "wayland-0", ""));
+    }
+
+    #[test]
+    fn test_wayland_by_env_x11_session() {
+        // X11 会话或显式 GDK_BACKEND=x11 覆盖时不判定为 Wayland
+        assert!(!wayland_by_env("x11", "", ""));
+        assert!(!wayland_by_env("", "", ""));
+        assert!(!wayland_by_env("wayland", "wayland-0", "x11"));
     }
 }
