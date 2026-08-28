@@ -1,7 +1,7 @@
 {
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main", "settings", "history", "overlay", "pin-*", "text-translate"],
+  "windows": ["main", "settings", "history", "overlay", "pin-*", "text-translate", "quick-fill"],
   "permissions": [
     "core:default",
     "opener:default",

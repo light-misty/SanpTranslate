@@ -157,4 +157,22 @@ export default {
     copyTranslation: 'Copy Translation',
     targetLanguage: 'Target Language',
   },
+
+  // Quick text fill
+  quickFill: {
+    title: 'Quick Text Fill',
+    description: 'Configure shortcuts and corresponding fill text. When focus is in an input field, press the shortcut to automatically fill in the text.',
+    shortcut: 'Shortcut',
+    shortcutPlaceholder: 'Click to set shortcut',
+    text: 'Fill Text',
+    textPlaceholder: 'Enter text to fill...',
+    addEntry: 'Add Entry',
+    empty: 'No configuration yet, click the button below to add',
+    duplicateShortcut: 'Entry #{first} and entry #{second} use the same shortcut {shortcut}, please change it',
+    conflictWithMain: 'Shortcut {shortcut} conflicts with a main shortcut of the app, please change it',
+    saveFailed: 'Save failed: {error}',
+    templates: 'Built-in Templates',
+    templateEnabled: 'Enabled',
+    templateDisabled: 'Disabled',
+  },
 }

@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -119,17 +120,24 @@ pub fn register_hotkeys(app: &tauri::AppHandle, config: &ShortcutConfig) -> Resu
 }
 
 /// 重新注册快捷键（配置变更后调用）
+///
+/// 仅注销/注册主快捷键（截图/剪贴板贴图/文本翻译），不使用 unregister_all()，
+/// 避免误注销快捷填充等其它模块注册的全局快捷键。
 pub fn reregister_hotkeys(app: &tauri::AppHandle, new_config: &ShortcutConfig) -> Result<(), AppError> {
     let new_capture = parse_shortcut(&new_config.capture)?;
     let new_pin = parse_shortcut(&new_config.pin_clipboard)?;
     let new_text_translate = parse_shortcut(&new_config.text_translate)?;
 
-    // 注销所有已注册的快捷键
-    app.global_shortcut()
-        .unregister_all()
-        .map_err(|e| AppError::ConfigError(format!("注销快捷键失败: {}", e)))?;
+    // 注销旧的三个主快捷键（仅处理本模块曾注册的快捷键，不影响其它模块）
+    if let Some(shortcuts) = app.try_state::<Arc<Mutex<CurrentShortcuts>>>() {
+        if let Ok(current) = shortcuts.lock() {
+            let _ = app.global_shortcut().unregister(current.capture);
+            let _ = app.global_shortcut().unregister(current.pin_clipboard);
+            let _ = app.global_shortcut().unregister(current.text_translate);
+        }
+    }
 
-    // 注册新的快捷键
+    // 注册新的主快捷键
     app.global_shortcut()
         .register(new_capture)
         .map_err(|e| AppError::ConfigError(format!("注册截图快捷键失败: {}", e)))?;
@@ -424,7 +432,8 @@ fn handle_text_translate_hotkey(app: &tauri::AppHandle) {
     }
 }
 
-fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
+/// 解析快捷键字符串（如 "Ctrl+Alt+L"）为 Shortcut 对象
+pub fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
     let parts: Vec<&str> = shortcut_str.split('+').collect();
 
     let mut modifiers = Modifiers::empty();
@@ -450,7 +459,8 @@ fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, AppError> {
     Ok(Shortcut::new(Some(modifiers), key))
 }
 
-fn parse_key_code(key: &str) -> Result<Code, AppError> {
+/// 解析按键名称到 Code
+pub fn parse_key_code(key: &str) -> Result<Code, AppError> {
     if key.len() > 1 {
         let lower = key.to_lowercase();
         if let Some(stripped) = lower.strip_prefix('f') {
@@ -532,4 +542,177 @@ fn parse_key_code(key: &str) -> Result<Code, AppError> {
         "不支持的按键: {}",
         key
     )))
+}
+
+/// 将 Code 转回显示名称（与前端 ShortcutInput 的 keyCodeMap 保持一致）
+pub fn code_to_key_name(code: Code) -> String {
+    let debug = format!("{:?}", code);
+    // "KeyA" -> "A"；"Digit1" -> "1"；"F5" -> 原样
+    debug
+        .strip_prefix("Key")
+        .or_else(|| debug.strip_prefix("Digit"))
+        .map(str::to_string)
+        .unwrap_or(debug)
+}
+
+/// 将 Shortcut 序列化为后端格式字符串（如 "Ctrl+Alt+1"），用于录制事件转发
+pub fn shortcut_to_string(shortcut: &Shortcut) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if shortcut.mods.contains(Modifiers::CONTROL) {
+        parts.push("Ctrl".to_string());
+    }
+    if shortcut.mods.contains(Modifiers::ALT) {
+        parts.push("Alt".to_string());
+    }
+    if shortcut.mods.contains(Modifiers::SHIFT) {
+        parts.push("Shift".to_string());
+    }
+    if shortcut.mods.contains(Modifiers::SUPER) {
+        parts.push("Win".to_string());
+    }
+    parts.push(code_to_key_name(shortcut.key));
+    parts.join("+")
+}
+
+/// 查询快捷键录制状态是否开启
+pub fn is_shortcut_recording(app: &tauri::AppHandle) -> bool {
+    if let Some(state) = app.try_state::<Arc<Mutex<bool>>>() {
+        if let Ok(recording) = state.lock() {
+            return *recording;
+        }
+    }
+    false
+}
+
+/// 复位快捷键录制状态（窗口销毁等场景调用），防止录制标志残留导致业务快捷键被转发而失效
+pub fn reset_shortcut_recording(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<Arc<Mutex<bool>>>() {
+        if let Ok(mut recording) = state.lock() {
+            if *recording {
+                *recording = false;
+                log::debug!("[HOTKEY] 复位快捷键录制状态");
+            }
+        }
+    }
+}
+
+/// 录制状态下将按下的快捷键序列化并广播给前端录制组件。
+/// 返回 true 表示已消费该按键（录制中），调用方不应再执行业务功能。
+pub fn emit_recorded_shortcut(app: &tauri::AppHandle, shortcut: &Shortcut) -> bool {
+    if !is_shortcut_recording(app) {
+        return false;
+    }
+    let shortcut_str = shortcut_to_string(shortcut);
+    log::debug!("[HOTKEY] 录制中转发快捷键事件: {}", shortcut_str);
+    if let Err(e) = app.emit("shortcut-record", shortcut_str) {
+        log::error!("[HOTKEY] 广播录制快捷键事件失败: {}", e);
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tauri_plugin_global_shortcut::{Code, Modifiers};
+
+    fn assert_shortcut(s: Result<Shortcut, AppError>, mods: Modifiers, code: Code) {
+        let shortcut = s.unwrap_or_else(|e| panic!("解析快捷键失败: {}", e));
+        assert_eq!(shortcut.mods, mods, "修饰键不匹配");
+        assert_eq!(shortcut.key, code, "按键不匹配");
+    }
+
+    #[test]
+    fn test_parse_shortcut_ctrl_alt_digit() {
+        assert_shortcut(
+            parse_shortcut("Ctrl+Alt+1"),
+            Modifiers::CONTROL | Modifiers::ALT,
+            Code::Digit1,
+        );
+    }
+
+    #[test]
+    fn test_parse_shortcut_case_insensitive() {
+        assert_shortcut(
+            parse_shortcut("ctrl+shift+a"),
+            Modifiers::CONTROL | Modifiers::SHIFT,
+            Code::KeyA,
+        );
+    }
+
+    #[test]
+    fn test_parse_shortcut_super_modifier() {
+        assert_shortcut(parse_shortcut("Win+F5"), Modifiers::SUPER, Code::F5);
+    }
+
+    #[test]
+    fn test_parse_shortcut_meta_alias() {
+        // meta 与 win/super 等价，均映射为 SUPER 修饰键
+        assert_shortcut(parse_shortcut("Ctrl+Meta+M"), Modifiers::CONTROL | Modifiers::SUPER, Code::KeyM);
+    }
+
+    #[test]
+    fn test_parse_shortcut_missing_key_errors() {
+        let err = parse_shortcut("Ctrl+Alt").unwrap_err();
+        assert!(err.to_string().contains("快捷键缺少按键"));
+    }
+
+    #[test]
+    fn test_parse_shortcut_invalid_key_errors() {
+        let err = parse_shortcut("Ctrl+Alt+Space").unwrap_err();
+        assert!(err.to_string().contains("不支持的按键"));
+    }
+
+    #[test]
+    fn test_parse_key_code_alpha() {
+        assert_eq!(parse_key_code("a").unwrap(), Code::KeyA);
+        assert_eq!(parse_key_code("Z").unwrap(), Code::KeyZ);
+    }
+
+    #[test]
+    fn test_parse_key_code_digit() {
+        assert_eq!(parse_key_code("0").unwrap(), Code::Digit0);
+        assert_eq!(parse_key_code("9").unwrap(), Code::Digit9);
+    }
+
+    #[test]
+    fn test_parse_key_code_function_keys() {
+        assert_eq!(parse_key_code("F1").unwrap(), Code::F1);
+        assert_eq!(parse_key_code("f12").unwrap(), Code::F12);
+    }
+
+    #[test]
+    fn test_parse_key_code_function_out_of_range() {
+        let err = parse_key_code("F13").unwrap_err();
+        assert!(err.to_string().contains("不支持的功能键编号"));
+    }
+
+    #[test]
+    fn test_parse_key_code_invalid() {
+        let err = parse_key_code("Space").unwrap_err();
+        assert!(err.to_string().contains("不支持的按键"));
+    }
+
+    #[test]
+    fn test_shortcut_to_string_ctrl_alt_digit() {
+        let s = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Digit1);
+        assert_eq!(shortcut_to_string(&s), "Ctrl+Alt+1");
+    }
+
+    #[test]
+    fn test_shortcut_to_string_win_alpha() {
+        let s = Shortcut::new(Some(Modifiers::SUPER), Code::KeyA);
+        assert_eq!(shortcut_to_string(&s), "Win+A");
+    }
+
+    #[test]
+    fn test_shortcut_to_string_no_modifier() {
+        let s = Shortcut::new(Some(Modifiers::empty()), Code::Digit3);
+        assert_eq!(shortcut_to_string(&s), "3");
+    }
+
+    #[test]
+    fn test_shortcut_to_string_shift_function_key() {
+        let s = Shortcut::new(Some(Modifiers::SHIFT), Code::F5);
+        assert_eq!(shortcut_to_string(&s), "Shift+F5");
+    }
 }

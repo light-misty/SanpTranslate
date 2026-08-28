@@ -1,4 +1,4 @@
-use crate::config::{AppConfig, ConfigManager};
+use crate::config::{AppConfig, ConfigManager, QuickFillEntry};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use std::error::Error;
@@ -41,11 +41,6 @@ pub fn write_clipboard_image(image_data: String, app: tauri::AppHandle) -> Resul
         log::error!("[CMD] 写入剪贴板失败: {}", e);
         e.to_string()
     })
-}
-
-#[tauri::command]
-pub fn read_clipboard_image(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    crate::clipboard::read_clipboard_image(&app).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -759,141 +754,103 @@ pub async fn translate_text(
 
 /// 检测快捷键是否已被其他程序占用
 ///
-/// 先注销当前快捷键（因为应用自己可能已注册），然后尝试注册来判断是否被其他程序占用。
-/// 检测完成后恢复注册，确保应用功能不受影响。
+/// 探测原理：注销本应用自身可能存在的注册后尝试注册，注册成功说明未被其他程序占用。
+/// 检测完成后严格按"检测前是否已注册"恢复原状：
+/// - 检测前已注册（本应用）的快捷键恢复注册；
+/// - 检测前未注册的快捷键不留任何残留注册，避免干扰后续保存注册流程。
 #[tauri::command]
 pub fn check_shortcut_conflict(shortcut: String, app: tauri::AppHandle) -> Result<bool, String> {
-    use tauri_plugin_global_shortcut::{GlobalShortcutExt, Modifiers, Shortcut};
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-    // 解析快捷键字符串
-    let parts: Vec<&str> = shortcut.split('+').collect();
-    let mut modifiers = Modifiers::empty();
-    let mut key_code = None;
+    // 复用 hotkey 模块解析，避免命令内重复实现
+    let shortcut_obj = crate::hotkey::parse_shortcut(&shortcut).map_err(|e| e.to_string())?;
 
-    for part in parts {
-        let trimmed = part.trim();
-        match trimmed.to_lowercase().as_str() {
-            "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
-            "shift" => modifiers |= Modifiers::SHIFT,
-            "alt" => modifiers |= Modifiers::ALT,
-            "super" | "win" | "meta" => modifiers |= Modifiers::SUPER,
-            _ => {
-                key_code = Some(parse_key_code_internal(trimmed)?);
-            }
-        }
+    // 记录检测前本应用是否已注册该快捷键
+    let was_registered = app.global_shortcut().is_registered(shortcut_obj);
+    if was_registered {
+        // 先注销本应用自身的注册，避免探测时误判为"被其他程序占用"
+        let _ = app.global_shortcut().unregister(shortcut_obj);
+        // 等待系统释放快捷键
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
-    let key = key_code.ok_or_else(|| format!("快捷键缺少按键: {}", shortcut))?;
-    let shortcut_obj = Shortcut::new(Some(modifiers), key);
-
-    // 先注销快捷键（应用自己可能已注册该快捷键）
-    let _ = app.global_shortcut().unregister(shortcut_obj);
-    // 等待系统释放快捷键
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    // 尝试注册快捷键
+    // 尝试注册以探测占用：注册失败说明已被其他程序占用
     match app.global_shortcut().register(shortcut_obj) {
         Ok(()) => {
-            // 注册成功，说明未被其他程序占用，立即注销
+            // 探测注册成功（未被占用），立即注销探测注册，避免残留注册干扰后续保存
             let _ = app.global_shortcut().unregister(shortcut_obj);
-            // 重新注册，恢复应用自身的功能
-            let _ = app.global_shortcut().register(shortcut_obj);
-            Ok(false) // 未被占用
+            // 若检测前本应用已注册，恢复原注册
+            if was_registered {
+                let _ = app.global_shortcut().register(shortcut_obj);
+            }
+            Ok(false) // 未被其他程序占用
         }
         Err(e) => {
             let err_str = e.to_string();
-            if err_str.contains("already registered") {
-                // 快捷键已被其他程序占用，重新注册以恢复应用自身的功能
+            // 若检测前本应用已注册，恢复原注册
+            if was_registered {
                 let _ = app.global_shortcut().register(shortcut_obj);
+            }
+            if err_str.contains("already registered") {
+                // 快捷键已被其他程序占用
                 Ok(true)
             } else {
-                // 其他错误（如权限问题），重新注册以恢复应用自身的功能
-                let _ = app.global_shortcut().register(shortcut_obj);
+                // 其他错误（如权限问题）
                 Err(format!("检测快捷键失败: {}", e))
             }
         }
     }
 }
 
-/// 解析按键名称到 Code（内部复用）
-fn parse_key_code_internal(key: &str) -> Result<tauri_plugin_global_shortcut::Code, String> {
-    use tauri_plugin_global_shortcut::Code;
+/// 设置快捷键录制状态。
+///
+/// 录制期间（recording=true），全局快捷键按下时不再执行业务功能，
+/// 而是由后端将按键序列化后广播到前端录制组件（解决已注册快捷键被系统劫持无法录制的问题）。
+#[tauri::command]
+pub fn set_shortcut_recording(recording: bool, app: tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<std::sync::Arc<std::sync::Mutex<bool>>>();
+    let mut current = state
+        .lock()
+        .map_err(|e| format!("锁定快捷键录制状态失败: {}", e))?;
+    *current = recording;
+    log::debug!("[CMD] set_shortcut_recording: {}", recording);
+    Ok(())
+}
 
-    if key.len() > 1 {
-        let lower = key.to_lowercase();
-        if let Some(stripped) = lower.strip_prefix('f') {
-            let num: u32 = stripped
-                .parse()
-                .map_err(|_| format!("无效的功能键: {}", key))?;
-            return match num {
-                1 => Ok(Code::F1),
-                2 => Ok(Code::F2),
-                3 => Ok(Code::F3),
-                4 => Ok(Code::F4),
-                5 => Ok(Code::F5),
-                6 => Ok(Code::F6),
-                7 => Ok(Code::F7),
-                8 => Ok(Code::F8),
-                9 => Ok(Code::F9),
-                10 => Ok(Code::F10),
-                11 => Ok(Code::F11),
-                12 => Ok(Code::F12),
-                _ => Err(format!("不支持的功能键编号: {}", num)),
-            };
-        }
-    }
+/// 保存快捷填充配置并重新注册快捷键
+#[tauri::command]
+pub fn save_quick_fills(
+    quick_fills: Vec<QuickFillEntry>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    log::info!("[CMD] save_quick_fills 被调用，条目数={}", quick_fills.len());
 
-    if key.len() == 1 {
-        let c = key.chars().next().unwrap();
-        if c.is_ascii_alphabetic() {
-            return Ok(match c.to_ascii_uppercase() {
-                'A' => Code::KeyA,
-                'B' => Code::KeyB,
-                'C' => Code::KeyC,
-                'D' => Code::KeyD,
-                'E' => Code::KeyE,
-                'F' => Code::KeyF,
-                'G' => Code::KeyG,
-                'H' => Code::KeyH,
-                'I' => Code::KeyI,
-                'J' => Code::KeyJ,
-                'K' => Code::KeyK,
-                'L' => Code::KeyL,
-                'M' => Code::KeyM,
-                'N' => Code::KeyN,
-                'O' => Code::KeyO,
-                'P' => Code::KeyP,
-                'Q' => Code::KeyQ,
-                'R' => Code::KeyR,
-                'S' => Code::KeyS,
-                'T' => Code::KeyT,
-                'U' => Code::KeyU,
-                'V' => Code::KeyV,
-                'W' => Code::KeyW,
-                'X' => Code::KeyX,
-                'Y' => Code::KeyY,
-                'Z' => Code::KeyZ,
-                _ => unreachable!(),
-            });
-        }
-        if c.is_ascii_digit() {
-            return Ok(match c {
-                '0' => Code::Digit0,
-                '1' => Code::Digit1,
-                '2' => Code::Digit2,
-                '3' => Code::Digit3,
-                '4' => Code::Digit4,
-                '5' => Code::Digit5,
-                '6' => Code::Digit6,
-                '7' => Code::Digit7,
-                '8' => Code::Digit8,
-                '9' => Code::Digit9,
-                _ => unreachable!(),
-            });
-        }
-    }
+    // 加载当前配置
+    let config_manager = ConfigManager::new(&app).map_err(|e| e.to_string())?;
+    let mut config = config_manager.load().map_err(|e| e.to_string())?;
 
-    Err(format!("不支持的按键: {}", key))
+    // 更新快捷填充配置
+    config.quick_fills = quick_fills;
+
+    // 保存配置到文件
+    config_manager.save(&config).map_err(|e| e.to_string())?;
+
+    // 注销旧的快捷填充快捷键
+    crate::quickfill::unregister_quick_fill_shortcuts(&app);
+
+    // 注册新的快捷填充快捷键
+    crate::quickfill::register_quick_fill_shortcuts(&app, &config.quick_fills)
+        .map_err(|e| {
+            // 配置已写入，但注册存在失败项，返回错误让前端提示用户
+            log::error!("[CMD] save_quick_fills 注册失败: {}", e);
+            e.to_string()
+        })?;
+
+    log::info!(
+        "[CMD] 快捷填充配置已保存并重新注册，共 {} 条",
+        config.quick_fills.len()
+    );
+    Ok(())
 }
 
 /// 在系统资源管理器中定位到指定路径

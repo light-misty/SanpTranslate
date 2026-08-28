@@ -4,8 +4,29 @@ import { fireEvent } from '@testing-library/react'
 import i18n from '@/i18n'
 import ShortcutInput from './ShortcutInput'
 
+// 记录 mock 句柄与事件回调队列（vi.hoisted 保证 mock 工厂提升后仍可引用）
+const { shortcutRecordListeners, mocks } = vi.hoisted(() => ({
+  shortcutRecordListeners: [] as ((payload: string) => void)[],
+  mocks: {
+    checkShortcutConflict: vi.fn(() => Promise.resolve(false)),
+    setShortcutRecording: vi.fn(() => Promise.resolve()),
+    onShortcutRecord: vi.fn((cb: (payload: string) => void) => {
+      shortcutRecordListeners.push(cb)
+      return Promise.resolve(() => {})
+    }),
+  },
+}))
+
+// utils/tauri 的命令绑定依赖 Tauri 运行时，Node/jsdom 测试环境中 mock 掉
+vi.mock('@/utils/tauri', () => ({
+  checkShortcutConflict: mocks.checkShortcutConflict,
+  setShortcutRecording: mocks.setShortcutRecording,
+  onShortcutRecord: mocks.onShortcutRecord,
+}))
+
 beforeEach(async () => {
   await i18n.changeLanguage('zh-CN')
+  vi.clearAllMocks()
 })
 
 describe('ShortcutInput', () => {
@@ -86,5 +107,71 @@ describe('ShortcutInput', () => {
 
     fireEvent.blur(input)
     await waitFor(() => expect(screen.queryByText('请按下快捷键...')).toBeNull())
+  })
+
+  it('录制中收到 shortcut-record 事件时回填值并停止录制', async () => {
+    const onChange = vi.fn()
+    const { container } = render(<ShortcutInput value="" onChange={onChange} />)
+
+    const input = container.querySelector('.shortcut-input') as HTMLElement
+    fireEvent.focus(input)
+    expect(screen.getByText('请按下快捷键...')).toBeDefined()
+
+    // 模拟后端转发的已注册快捷键事件（该组合被全局热键劫持，WebView 收不到 keydown）
+    const listener = shortcutRecordListeners[shortcutRecordListeners.length - 1]
+    listener('Ctrl+Alt+1')
+
+    expect(onChange).toHaveBeenCalledWith('Ctrl+Alt+1')
+    await waitFor(() => expect(screen.queryByText('请按下快捷键...')).toBeNull())
+  })
+
+  it('不在录制状态时忽略 shortcut-record 事件', async () => {
+    const onChange = vi.fn()
+    render(<ShortcutInput value="" onChange={onChange} />)
+
+    const listener = shortcutRecordListeners[shortcutRecordListeners.length - 1]
+    listener('Ctrl+Alt+1')
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('聚焦时开启快捷键录制状态，结束录制后关闭', async () => {
+    const { container } = render(<ShortcutInput value="" onChange={vi.fn()} />)
+
+    const input = container.querySelector('.shortcut-input') as HTMLElement
+    fireEvent.focus(input)
+    await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(true))
+
+    fireEvent.blur(input)
+    await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(false))
+  })
+
+  it('录制中组件卸载后复位后端录制状态（避免窗口关闭残留）', async () => {
+    const { container, unmount } = render(<ShortcutInput value="" onChange={vi.fn()} />)
+
+    const input = container.querySelector('.shortcut-input') as HTMLElement
+    fireEvent.focus(input)
+    await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(true))
+
+    vi.clearAllMocks()
+    unmount()
+    await waitFor(() => expect(mocks.setShortcutRecording).toHaveBeenCalledWith(false))
+  })
+
+  it('已聚焦时再次点击仍重新进入录制（已有值场景）', async () => {
+    const onChange = vi.fn()
+    const { container } = render(<ShortcutInput value="Ctrl+Alt+1" onChange={onChange} />)
+
+    const input = container.querySelector('.shortcut-input') as HTMLElement
+    // 第一次点击进入录制并录制完成（显示新值后已停止录制，焦点仍在）
+    fireEvent.focus(input)
+    fireEvent.keyDown(input, { code: 'ControlLeft' })
+    fireEvent.keyDown(input, { code: 'AltLeft' })
+    fireEvent.keyDown(input, { code: 'Digit2' })
+    await waitFor(() => expect(screen.queryByText('请按下快捷键...')).toBeNull())
+
+    // 再次点击（已聚焦，浏览器不会重新派发 focus）应重新进入录制
+    fireEvent.click(input)
+    expect(screen.getByText('请按下快捷键...')).toBeDefined()
   })
 })

@@ -145,3 +145,11 @@ pub fn write_clipboard_text(app: &tauri::AppHandle, text: &str) -> Result<(), Ap
 
     Ok(())
 }
+
+/// 从系统剪贴板读取文本
+pub fn read_clipboard_text(app: &tauri::AppHandle) -> Result<String, AppError> {
+    let clipboard = app.clipboard();
+    clipboard
+        .read_text()
+        .map_err(|e| AppError::ClipboardError(format!("读取剪贴板文本失败: {}", e)))
+}

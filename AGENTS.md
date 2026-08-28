@@ -27,7 +27,7 @@ Explicitly write out your entire deliberation process, documenting every interme
 
 ## 项目概述
 
-SnapTranslate 是一款基于 Tauri 2.x 的桌面截屏翻译工具。它能截取屏幕区域、执行 OCR（Tesseract）识别文字并调用 AI 翻译，将译文展示在右侧译文面板中，以贴图形式固定在桌面上。
+SnapTranslate 是一款基于 Tauri 2.x 的桌面截屏翻译工具。它能截取屏幕区域、执行 OCR（Tesseract）识别文字并调用 AI 翻译，将译文展示在右侧译文面板中，以贴图形式固定在桌面上。此外还支持快捷文本填充功能，允许用户配置快捷键自动填充预设文本。
 
 ## 技术栈
 
@@ -63,6 +63,11 @@ SnapTranslate 是一款基于 Tauri 2.x 的桌面截屏翻译工具。它能截�
 - tauri-plugin-autostart 2.5.1
 - tauri-plugin-updater 2
 
+### 平台特定依赖
+
+- **Windows**: raw-window-handle 0.6、windows-sys 0.59（DWM、窗口消息）
+- **Linux**: gtk 0.18（X11 窗口属性设置）
+
 ## 项目结构
 
 ```
@@ -74,18 +79,19 @@ SanpTranslate/
 │   │   ├── ControlBar.tsx        # 贴图控制栏（翻译/复制/切换按钮）
 │   │   ├── HistoryItem.tsx       # 历史记录条目
 │   │   └── ShortcutInput.tsx     # 快捷键输入组件
-│   ├── views/                # 视图组件（对应不同窗口）
+│   ├── views/                    # 视图组件（对应不同窗口）
 │   │   ├── OverlayView.tsx       # 截图蒙版（Canvas 全屏框选）
 │   │   ├── PinView.tsx           # 贴图窗口（截图+译文+控制栏）
 │   │   ├── SettingsView.tsx      # 设置页面
 │   │   ├── HistoryView.tsx       # 历史记录页面
-│   │   └── TextTranslateView.tsx # 文本翻译窗口
+│   │   ├── TextTranslateView.tsx # 文本翻译窗口
+│   │   └── QuickFillView.tsx     # 快捷文本填充配置窗口
 │   ├── stores/               # Zustand 状态管理
 │   │   ├── configStore.ts        # 配置状态
 │   │   ├── pinStore.ts           # 贴图状态
 │   │   └── historyStore.ts       # 历史记录状态
 │   ├── router/               # 路由配置
-│   │   └── index.tsx             # 五个路由（懒加载）
+│   │   └── index.tsx             # 六个路由（懒加载）
 │   ├── i18n/                 # 国际化
 │   │   ├── index.ts              # i18next 配置
 │   │   └── locales/              # 语言文件
@@ -109,7 +115,7 @@ SanpTranslate/
 │   └── src/                      # Rust 源码
 │       ├── main.rs               # 应用入口
 │       ├── lib.rs                # 应用核心（插件注册、setup）
-│       ├── commands.rs           # Tauri 命令定义（23个命令）
+│       ├── commands.rs           # Tauri 命令定义（27个命令）
 │       ├── error.rs              # 统一错误类型 AppError
 │       ├── capture/              # 截图模块
 │       ├── clipboard/            # 剪贴板模块
@@ -120,6 +126,7 @@ SanpTranslate/
 │       ├── hotkey/               # 全局快捷键模块
 │       ├── logging/              # 日志管理模块
 │       ├── ocr/                  # OCR 模块（Tesseract CLI）
+│       ├── quickfill/            # 快捷填充模块
 │       ├── translate/            # 翻译模块
 │       │   ├── mod.rs            # 核心翻译逻辑
 │       │   ├── openai.rs         # OpenAI 兼容 API
@@ -174,7 +181,7 @@ pnpm run preview
    - 组件文件使用 PascalCase（如 `ControlBar.tsx`）
    - 工具函数和常量使用 camelCase
    - CSS 类名使用 kebab-case
-   - 路由路径使用 kebab-case（如 `/text-translate`）
+   - 路由路径使用 kebab-case（如 `/text-translate`、`/quick-fill`）
 
 2. **组件模式**：
    - 函数组件 + Hooks
@@ -189,7 +196,7 @@ pnpm run preview
 
 4. **国际化**：
    - 使用 `useTranslation` hook 获取 `t` 函数
-   - 语言包采用嵌套结构（如 `controlBar.translate`）
+   - 语言包采用嵌套结构（如 `controlBar.translate`、`quickFill.title`）
    - 支持 `{param}` 占位符语法（兼容 vue-i18n）
 
 5. **日志**：
@@ -222,7 +229,7 @@ pnpm run preview
 
 4. **日志**：
    - 使用 `log` crate 的宏（`log::info!`、`log::error!` 等）
-   - 日志标签格式：`[MODULE]`（如 `[OCR]`、`[CMD]`、`[TRANSLATE]`）
+   - 日志标签格式：`[MODULE]`（如 `[OCR]`、`[CMD]`、`[TRANSLATE]`、`[QUICKFILL]`）
    - dev 模式 Debug 级别，prod 模式 Info 级别
 
 5. **并发模式**：
@@ -237,7 +244,7 @@ pnpm run preview
    - API 密钥通过 keyring 存储，不写入配置文件
 
 7. **窗口管理**：
-   - 设置/历史/文本翻译窗口使用单例模式（已存在则复用）
+   - 设置/历史/文本翻译/快捷填充窗口使用单例模式（已存在则复用）
    - 贴图窗口每次创建新实例（UUID 标签）
    - 蒙版窗口打开前先关闭已有实例
 
@@ -286,6 +293,38 @@ pnpm run preview
 - 使用 `concurrency.group: release-${{ github.ref }}`
 - `cancel-in-progress: true`（新发布取消旧的）
 
+## Tauri 命令列表（27个）
+
+| 命令 | 说明 |
+|------|------|
+| `get_config` | 获取应用配置 |
+| `save_config` | 保存应用配置 |
+| `write_clipboard_image` | 写入图片到剪贴板 |
+| `write_clipboard_text` | 写入文本到剪贴板 |
+| `close_pin_window` | 关闭贴图窗口 |
+| `get_pin_image` | 获取贴图图像数据 |
+| `capture_region_from_cache` | 从缓存截图裁剪区域 |
+| `get_overlay_image` | 获取蒙版窗口图像数据 |
+| `store_pin_image` | 存储贴图图像数据 |
+| `translate_image` | 翻译图像（OCR + AI 翻译） |
+| `ocr_image` | 仅 OCR 识别不翻译 |
+| `translate_text` | 纯文本翻译 |
+| `get_api_key` | 获取 API 密钥 |
+| `set_api_key` | 设置 API 密钥 |
+| `delete_api_key` | 删除 API 密钥 |
+| `get_config_path` | 获取配置文件路径 |
+| `get_log_dir` | 获取日志文件目录 |
+| `test_api_connection` | 测试 API 连接 |
+| `get_history_list` | 获取历史记录列表 |
+| `get_history_detail` | 获取历史记录详情 |
+| `delete_history` | 删除历史记录 |
+| `clear_history` | 清空所有历史记录 |
+| `restart_app` | 重启应用 |
+| `reveal_in_explorer` | 在系统资源管理器中定位文件 |
+| `check_shortcut_conflict` | 检测快捷键是否被占用 |
+| `set_shortcut_recording` | 设置快捷键录制状态 |
+| `save_quick_fills` | 保存快捷填充配置 |
+
 ## 关键设计决策
 
 1. **翻译流程**：本地 Tesseract OCR 提取文字及坐标 → 查找历史缓存 → 未命中则调用 AI API 翻译 → 按行匹配坐标返回翻译块
@@ -303,3 +342,9 @@ pnpm run preview
 7. **贴图窗口**：每张贴图截图都是一个独立的透明 Tauri Webview 窗口，定位在原始截取坐标处
 
 8. **日志策略**：dev 模式日志写入项目根目录 `log/`，prod 模式写入 OS 标准日志目录；单文件最大 10MB，保留所有历史日志，过期清理（30天）
+
+9. **快捷文本填充**：用户可配置快捷键与填充文本的映射，按下快捷键时通过剪贴板+模拟粘贴方式将文本填充到当前焦点输入框。支持内置模板（如 Git 工作树提示词）
+
+10. **快捷键录制**：前端通过 `set_shortcut_recording` 命令进入录制模式，后端将全局快捷键按下事件转发给前端，解决已注册快捷键被系统劫持无法录制的问题
+
+11. **快捷键冲突检测**：`check_shortcut_conflict` 命令通过尝试注册快捷键来检测是否已被其他程序占用，检测完成后严格恢复原状

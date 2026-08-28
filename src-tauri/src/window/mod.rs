@@ -118,6 +118,36 @@ pub fn create_history_window(app: &AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
+/// 创建快捷填充配置窗口（单例模式，居中显示）
+pub fn create_quick_fill_window(app: &AppHandle) -> Result<(), AppError> {
+    // 单例模式：如果已存在则聚焦
+    if let Some(window) = app.get_webview_window("quick-fill") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    // 读取配置以确定界面语言
+    let language = get_config_language(app);
+    let is_zh = resolve_language(&language) == "zh-CN";
+    let title = if is_zh {
+        "SnapTranslate - 快捷文本填充"
+    } else {
+        "SnapTranslate - Quick Text Fill"
+    };
+
+    WebviewWindowBuilder::new(app, "quick-fill", WebviewUrl::App("/quick-fill".into()))
+        .title(title)
+        .inner_size(550.0, 450.0)
+        // 打开时最大化显示，方便编辑多条填充配置
+        .maximized(true)
+        .resizable(true)
+        .build()
+        .map_err(|e| AppError::ConfigError(format!("创建快捷填充配置窗口失败: {}", e)))?;
+
+    Ok(())
+}
+
 /// 创建文本翻译窗口（单例模式，屏幕下方居中）
 pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
     // 单例模式：如果已存在则聚焦
@@ -178,20 +208,6 @@ pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
     };
 
     Ok(())
-}
-
-/// 创建蒙版窗口并存储图像数据（旧流程，兼容外部调用）
-#[allow(dead_code)]
-pub fn create_overlay_window(app: &AppHandle, image_data: &OverlayImageData) -> Result<(), AppError> {
-    {
-        let store = app.state::<Mutex<CachedScreenStore>>();
-        let mut store = store.lock().map_err(|e| {
-            AppError::ConfigError(format!("锁定缓存失败: {}", e))
-        })?;
-        store.overlay_image = Some(image_data.clone());
-    }
-
-    create_overlay_window_inner(app)
 }
 
 /// 创建蒙版窗口但不设置图像数据（异步加载截图）

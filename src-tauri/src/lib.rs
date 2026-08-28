@@ -7,6 +7,7 @@ mod history;
 mod hotkey;
 mod logging;
 mod ocr;
+mod quickfill;
 mod translate;
 mod tray;
 mod update;
@@ -81,7 +82,16 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
                     if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        log::debug!(
+                            "[HOTKEY] 全局快捷键按下: {}",
+                            hotkey::shortcut_to_string(shortcut)
+                        );
+                        // 快捷键录制期间：将按键转发给前端录制组件，不执行业务功能
+                        if hotkey::emit_recorded_shortcut(app, shortcut) {
+                            return;
+                        }
                         hotkey::handle_shortcut_event(app, shortcut);
+                        quickfill::handle_quick_fill_shortcut(app, shortcut);
                     }
                 })
                 .build(),
@@ -89,11 +99,13 @@ pub fn run() {
         .manage(Mutex::new(window::PinImageStore::default()))
         .manage(Mutex::new(window::CachedScreenStore::default()))
         .manage(Mutex::new(tray::TrayState::default()))
+        .manage(std::sync::Arc::new(Mutex::new(quickfill::QuickFillShortcuts::default())))
+        // 快捷键录制状态：录制期间全局快捷键按下改为转发事件，供前端 ShortcutInput 使用
+        .manage(std::sync::Arc::new(Mutex::new(false)))
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::save_config,
             commands::write_clipboard_image,
-            commands::read_clipboard_image,
             commands::write_clipboard_text,
             commands::close_pin_window,
             commands::get_pin_image,
@@ -115,8 +127,16 @@ pub fn run() {
             commands::clear_history,
             commands::restart_app,
             commands::reveal_in_explorer,
-            commands::check_shortcut_conflict
+            commands::check_shortcut_conflict,
+            commands::set_shortcut_recording,
+            commands::save_quick_fills
         ])
+        // 任一窗口销毁时复位快捷键录制状态，避免录制标志残留导致快捷键被转发而失效
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                hotkey::reset_shortcut_recording(window.app_handle());
+            }
+        })
         .setup(|app| {
             // 注册 updater 插件（必须在 setup 中注册，否则前端和后端都无法使用更新功能）
             #[cfg(desktop)]
@@ -198,6 +218,13 @@ pub fn run() {
 
             #[cfg(desktop)]
             hotkey::register_hotkeys(app.handle(), &app_config.shortcuts)?;
+
+            // 注册快捷填充快捷键
+            // 注册失败（如与其他程序冲突）仅记录日志，不影响应用启动；用户可在快捷填充页面重新配置
+            #[cfg(desktop)]
+            if let Err(e) = quickfill::register_quick_fill_shortcuts(app.handle(), &app_config.quick_fills) {
+                log::error!("注册快捷填充快捷键失败: {}", e);
+            }
 
             // 自动更新检查（仅 release 模式且开启了自动更新时执行）
             #[cfg(all(desktop, not(debug_assertions)))]
