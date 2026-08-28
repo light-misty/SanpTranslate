@@ -60,7 +60,8 @@ Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):
 - **Region Screenshot Translation** — Global hotkey `Ctrl+Alt+L`, drag-select any region, screenshot pinned at original position
 - **Clipboard Pin** — `Ctrl+Alt+P` paste clipboard image for translation
 - **Text Translation** — `Ctrl+Alt+M` opens text translation window, `Ctrl+Enter` for quick translate
-- **Local OCR** — Built-in Tesseract offline engine, supports Chinese / English / Japanese with auto-detection
+- **Quick Text Fill** — Configure shortcut-to-text mappings, press shortcut to auto-fill text into focused input box, supports built-in templates (e.g. Git worktree prompt)
+- **Local OCR** — Built-in Tesseract offline engine, supports Chinese / English / Japanese with configurable source language or auto-detection
 - **AI Translation** — OpenAI-compatible / Anthropic / Gemini API, bring your own model and key
 - **Translation Cache** — Repeated content auto-matches history, skips API call for instant results
 - **Pin Window** — Screenshot fixed at original position, right-side translation panel with height adjustment
@@ -79,9 +80,10 @@ Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):
 
 Right-click system tray → **Settings**, then fill in:
 
-- **API URL**: Any OpenAI-compatible endpoint
+- **API Provider**: OpenAI / Anthropic / Gemini
+- **API URL**: Provider-specific API endpoint
 - **API Key**: Securely saved via OS credential manager, never stored on disk
-- **Model Name**: e.g. `gpt-4o`, `deepseek-chat`
+- **Model Name**: e.g. `gpt-4o`, `claude-3-5-sonnet-20241022`, `gemini-2.5-flash`
 - **Target Language**: Chinese, English, Japanese, French, etc.
 - **OCR Source Language**: Auto-detect / Chinese / English / Japanese
 
@@ -98,7 +100,16 @@ Ctrl+Alt+P  → Pin clipboard image for translation
 Ctrl+Alt+M  → Open text translation window
 ```
 
-### 3. Pin Window Controls
+### 3. Quick Text Fill
+
+Right-click system tray → **Quick Text Fill**, configure shortcut-to-text mappings:
+
+- Click "Add Entry" to create new shortcut mapping
+- Set shortcut key and corresponding fill text
+- Built-in templates available (e.g. Git worktree prompt) for quick setup
+- When focus is in an input box, press shortcut to auto-fill text
+
+### 4. Pin Window Controls
 
 | Operation | Description |
 |-----------|-------------|
@@ -108,6 +119,7 @@ Ctrl+Alt+M  → Open text translation window
 | Drag | Window title area (excluding buttons) |
 | Stretch Panel | Drag right panel edge to adjust height |
 | Close | Double-click image area |
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -121,14 +133,14 @@ Ctrl+Alt+M  → Open text translation window
 | i18n | react-i18next + i18next 24 |
 | Capture | xcap |
 | OCR | Tesseract CLI (offline) |
-| Translation | reqwest → OpenAI-compatible API |
+| Translation | reqwest → OpenAI-compatible / Anthropic / Gemini API |
 | Database | SQLite (rusqlite) |
 | Secure Storage | keyring (OS credential manager) |
 
 ## Build from Source
 
 ```bash
-git clone https://github.com/XuMingKe-06/SanpTranslate.git
+git clone https://github.com/light-misty/SanpTranslate.git
 cd SnapTranslate
 pnpm install
 pnpm run tauri dev    # Dev mode (HMR)

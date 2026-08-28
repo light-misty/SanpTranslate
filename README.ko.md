@@ -60,8 +60,9 @@ Tauri 2 기반 데스크톱 스크린샷 번역 도구입니다. 화면 영역�
 - **영역 선택 번역** — 전역 단축키 `Ctrl+Alt+L`, 영역 드래그 선택, 스크린샷 원위치 자동 고정
 - **클립보드 고정** — `Ctrl+Alt+P` 클립보드 이미지를 데스크톱에 붙여넣고 번역
 - **텍스트 번역** — `Ctrl+Alt+M` 텍스트 번역 창 열기, `Ctrl+Enter` 빠른 번역
-- **로컬 OCR** — Tesseract 오프라인 엔진 내장, 중국어 / 영어 / 일본어 지원, 자동 언어 감지
-- **AI 번역** — OpenAI 호환 / Anthropic / Gemini API, 모델과 키 직접 준비
+- **빠른 텍스트 입력** — 단축키와 입력 텍스트 매핑 설정, 단축키로 포커스된 입력란에 자동 입력, 내장 템플릿 지원 (Git 워크트리 프롬프트 등)
+- **로컬 OCR** — Tesseract 오프라인 엔진 내장, 중국어 / 영어 / 일본어 지원, 소스 언어 설정 또는 자동 감지 가능
+- **AI 번역** — OpenAI 호환 / Anthropic / Gemini API 지원, 모델과 키 직접 준비
 - **번역 캐시** — 반복 내용 자동 기록 조회, 캐시 히트 시 API 호출 스킵
 - **고정 창** — 스크린샷 원래 위치에 고정, 우측 번역 패널 높이 조절 가능
 - **원문/번역 전환** — 원클릭 원문과 번역 결과 전환
@@ -79,9 +80,10 @@ Tauri 2 기반 데스크톱 스크린샷 번역 도구입니다. 화면 영역�
 
 시스템 트레이 우클릭 → **설정**에서 입력:
 
-- **API 주소**: OpenAI 호환 엔드포인트
+- **API 제공자**: OpenAI / Anthropic / Gemini
+- **API 주소**: 각 제공자의 API 엔드포인트
 - **API 키**: OS 자격 증명 관리자에 안전 저장, 디스크 미기록
-- **모델 이름**: 예: `gpt-4o`, `deepseek-chat`
+- **모델 이름**: 예: `gpt-4o`, `claude-3-5-sonnet-20241022`, `gemini-2.5-flash`
 - **번역 대상 언어**: 중국어, 영어, 일본어, 프랑스어 등
 - **OCR 소스 언어**: 자동 감지 / 중국어 / 영어 / 일본어
 
@@ -98,7 +100,16 @@ Ctrl+Alt+P  → 클립보드 이미지를 데스크톱에 붙여넣고 번역
 Ctrl+Alt+M  → 텍스트 번역 창 열기
 ```
 
-### 3. 고정 창 조작
+### 3. 빠른 텍스트 입력
+
+시스템 트레이 우클릭 → **빠른 텍스트 입력**, 단축키와 입력 텍스트 매핑 설정:
+
+- "항목 추가"를 클릭하여 새 단축키 매핑 생성
+- 단축키와 대응하는 입력 텍스트 설정
+- 내장 템플릿 (Git 워크트리 프롬프트 등) 으로 빠른 설정 지원
+- 입력란에 포커스가 있는 상태에서 단축키를 누르면 자동 입력
+
+### 4. 고정 창 조작
 
 | 조작 | 설명 |
 |------|------|
@@ -108,6 +119,7 @@ Ctrl+Alt+M  → 텍스트 번역 창 열기
 | 이동 | 창 제목 영역 (버튼 영역 제외) |
 | 패널 늘리기 | 우측 패널 가장자리 드래그 |
 | 닫기 | 이미지 영역 더블클릭 |
+
 ## 기술 스택
 
 | 계층 | 기술 |
@@ -121,14 +133,14 @@ Ctrl+Alt+M  → 텍스트 번역 창 열기
 | 국제화 | react-i18next + i18next 24 |
 | 캡처 | xcap |
 | OCR | Tesseract CLI (오프라인) |
-| 번역 | reqwest → OpenAI 호환 API |
+| 번역 | reqwest → OpenAI 호환 / Anthropic / Gemini API |
 | 데이터베이스 | SQLite (rusqlite) |
 | 보안 저장소 | keyring (OS 자격 증명 관리자) |
 
 ## 소스 코드에서 빌드
 
 ```bash
-git clone https://github.com/XuMingKe-06/SanpTranslate.git
+git clone https://github.com/light-misty/SanpTranslate.git
 cd SnapTranslate
 pnpm install
 pnpm run tauri dev    # 개발 모드 (HMR)

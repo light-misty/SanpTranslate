@@ -60,8 +60,9 @@
 - **框选截图翻译** — 全局快捷键 `Ctrl+Alt+L`，拖拽框选任意区域，截图自动贴在原位
 - **剪贴板贴图** — `Ctrl+Alt+P` 将剪贴板图片贴到桌面翻译
 - **文本翻译** — `Ctrl+Alt+M` 打开文本翻译窗口，`Ctrl+Enter` 快捷翻译
-- **本地 OCR** — 内置 Tesseract 离线引擎，支持中文 / 英文 / 日文，自动检测语言
-- **AI 翻译** — OpenAI 兼容 / Anthropic / Gemini API，自备模型与密钥
+- **快捷文本填充** — 配置快捷键与填充文本映射，按下快捷键自动填充文本到当前焦点输入框，支持内置模板（如 Git 工作树提示词）
+- **本地 OCR** — 内置 Tesseract 离线引擎，支持中文 / 英文 / 日文，可配置源语言或自动检测
+- **AI 翻译** — 支持 OpenAI 兼容 / Anthropic / Gemini API，自备模型与密钥
 - **翻译缓存** — 重复内容自动匹配历史记录，命中缓存跳过 API 调用
 - **贴图窗口** — 截图固定在原始位置，右侧译文面板支持高度拉伸
 - **原文/译文切换** — 一键切换原文与翻译结果
@@ -79,9 +80,10 @@
 
 右键系统托盘 → **设置**，填入：
 
-- **API 地址**：任意 OpenAI 兼容接口
+- **API 提供商**：OpenAI / Anthropic / Gemini
+- **API 地址**：对应提供商的 API 端点
 - **API 密钥**：通过系统凭据管理器安全保存，不落盘
-- **模型名称**：如 `gpt-4o`、`deepseek-chat`
+- **模型名称**：如 `gpt-4o`、`claude-3-5-sonnet-20241022`、`gemini-2.5-flash`
 - **目标语言**：中文、英语、日语、法语等
 - **OCR 源语言**：自动检测 / 中文 / 英文 / 日文
 
@@ -98,7 +100,16 @@ Ctrl+Alt+P  → 剪贴板图片贴到桌面翻译
 Ctrl+Alt+M  → 打开文本翻译窗口
 ```
 
-### 3. 贴图窗口操作
+### 3. 快捷文本填充
+
+右键系统托盘 → **快捷文本填充**，配置快捷键与填充文本的映射关系：
+
+- 点击「添加条目」创建新的快捷键映射
+- 设置快捷键和对应的填充文本
+- 提供内置模板（如 Git 工作树提示词）快速配置
+- 当焦点在输入框时，按下快捷键即可自动填充文本
+
+### 4. 贴图窗口操作
 
 | 操作 | 说明 |
 |------|------|
@@ -108,6 +119,7 @@ Ctrl+Alt+M  → 打开文本翻译窗口
 | 拖拽 | 窗口标题区（排除按钮区域） |
 | 拉伸面板 | 右侧面板边缘拖拽调整高度 |
 | 关闭 | 双击图片区域 |
+
 ## 技术栈
 
 | 层级 | 技术 |
@@ -121,14 +133,14 @@ Ctrl+Alt+M  → 打开文本翻译窗口
 | 国际化 | react-i18next + i18next 24 |
 | 截图 | xcap |
 | OCR | Tesseract CLI（离线） |
-| 翻译 | reqwest → OpenAI 兼容 API |
+| 翻译 | reqwest → OpenAI 兼容 / Anthropic / Gemini API |
 | 数据库 | SQLite (rusqlite) |
 | 安全存储 | keyring（系统凭据管理器） |
 
 ## 从源码构建
 
 ```bash
-git clone https://github.com/XuMingKe-06/SanpTranslate.git
+git clone https://github.com/light-misty/SanpTranslate.git
 cd SnapTranslate
 pnpm install
 pnpm run tauri dev    # 开发模式 (HMR)

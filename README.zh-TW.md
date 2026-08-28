@@ -60,8 +60,9 @@
 - **框選截圖翻譯** — 全域快速鍵 `Ctrl+Alt+L`，拖拽框選任意區域，截圖自動貼在原位
 - **剪貼簿貼圖** — `Ctrl+Alt+P` 將剪貼簿圖片貼到桌面翻譯
 - **文字翻譯** — `Ctrl+Alt+M` 開啟文字翻譯視窗，`Ctrl+Enter` 快捷翻譯
-- **本地 OCR** — 內建 Tesseract 離線引擎，支援中文 / 英文 / 日文，自動偵測語言
-- **AI 翻譯** — OpenAI 相容 / Anthropic / Gemini API，自備模型與金鑰
+- **快捷文字填充** — 配置快速鍵與填充文字對應，按下快速鍵自動填充文字到焦點輸入框，支援內建範本（如 Git 工作樹提示詞）
+- **本地 OCR** — 內建 Tesseract 離線引擎，支援中文 / 英文 / 日文，可配置源語言或自動偵測
+- **AI 翻譯** — 支援 OpenAI 相容 / Anthropic / Gemini API，自備模型與金鑰
 - **翻譯快取** — 重複內容自動比對歷史記錄，命中快取跳過 API 呼叫
 - **貼圖視窗** — 截圖固定在原始位置，右側譯文面板支援高度拉伸
 - **原文/譯文切換** — 一鍵切換原文與翻譯結果
@@ -79,9 +80,10 @@
 
 右鍵系統托盤 → **設定**，填入：
 
-- **API 地址**：任意 OpenAI 相容接口
+- **API 提供商**：OpenAI / Anthropic / Gemini
+- **API 地址**：對應提供商的 API 端點
 - **API 金鑰**：透過系統憑證管理員安全儲存，不落碟
-- **模型名稱**：如 `gpt-4o`、`deepseek-chat`
+- **模型名稱**：如 `gpt-4o`、`claude-3-5-sonnet-20241022`、`gemini-2.5-flash`
 - **目標語言**：中文、英語、日語、法語等
 - **OCR 源語言**：自動偵測 / 中文 / 英文 / 日文
 
@@ -98,7 +100,16 @@ Ctrl+Alt+P  → 剪貼簿圖片貼到桌面翻譯
 Ctrl+Alt+M  → 開啟文字翻譯視窗
 ```
 
-### 3. 貼圖視窗操作
+### 3. 快捷文字填充
+
+右鍵系統托盤 → **快捷文字填充**，配置快速鍵與填充文字的對應關係：
+
+- 點選「添加條目」建立新的快速鍵對應
+- 設定快速鍵和對應的填充文字
+- 提供內建範本（如 Git 工作樹提示詞）快速配置
+- 當焦點在輸入框時，按下快速鍵即可自動填充文字
+
+### 4. 貼圖視窗操作
 
 | 操作 | 說明 |
 |------|------|
@@ -108,6 +119,7 @@ Ctrl+Alt+M  → 開啟文字翻譯視窗
 | 拖拽 | 視窗標題區（排除按鈕區域） |
 | 拉伸面板 | 右側面板邊緣拖拽調整高度 |
 | 關閉 | 雙擊圖片區域 |
+
 ## 技術棧
 
 | 層級 | 技術 |
@@ -121,14 +133,14 @@ Ctrl+Alt+M  → 開啟文字翻譯視窗
 | 國際化 | react-i18next + i18next 24 |
 | 截圖 | xcap |
 | OCR | Tesseract CLI（離線） |
-| 翻譯 | reqwest → OpenAI 相容 API |
+| 翻譯 | reqwest → OpenAI 相容 / Anthropic / Gemini API |
 | 資料庫 | SQLite (rusqlite) |
 | 安全儲存 | keyring（系統憑證管理員） |
 
 ## 從原始碼建構
 
 ```bash
-git clone https://github.com/XuMingKe-06/SanpTranslate.git
+git clone https://github.com/light-misty/SanpTranslate.git
 cd SnapTranslate
 pnpm install
 pnpm run tauri dev    # 開發模式 (HMR)
