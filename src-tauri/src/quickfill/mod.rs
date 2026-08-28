@@ -43,6 +43,8 @@ pub fn register_quick_fill_shortcuts(
             Ok(shortcut) => {
                 // 注册前先注销自身可能已存在的注册（如探测残留），避免 already-registered
                 let _ = app.global_shortcut().unregister(shortcut);
+                // Windows 上注销后立即重注册同一热键可能短暂失败，稍等系统释放
+                std::thread::sleep(std::time::Duration::from_millis(100));
 
                 match app.global_shortcut().register(shortcut) {
                     Ok(()) => {
@@ -161,11 +163,11 @@ pub fn fill_text_with_app(app: &tauri::AppHandle, text: &str) {
     // 模拟 Ctrl+V 粘贴
     simulate_paste();
 
-    // 延迟恢复剪贴板内容
+    // 延迟恢复剪贴板内容（等待目标窗口完成粘贴，350ms 后恢复）
     if let Some(prev) = previous_clipboard {
         let app_clone = app.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(150));
+            std::thread::sleep(std::time::Duration::from_millis(350));
             let result = crate::clipboard::write_clipboard_text(&app_clone, &prev);
             log::debug!("[QUICKFILL] 恢复原剪贴板结果: {}", if result.is_ok() { "成功" } else { "失败" });
         });
@@ -177,10 +179,16 @@ fn simulate_paste() {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-            keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
+            keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_MENU, VK_V,
         };
 
         unsafe {
+            // 全局快捷键触发瞬间 Ctrl/Alt 仍处于物理按下状态，
+            // 若直接注入 Ctrl+V 会被目标窗口识别为 Ctrl+Alt+V 组合而不响应。
+            // 因此先模拟释放修饰键，等待系统刷新后再注入干净的 Ctrl+V。
+            keybd_event(VK_CONTROL as u8, 0, KEYEVENTF_KEYUP, 0);
+            keybd_event(VK_MENU as u8, 0, KEYEVENTF_KEYUP, 0);
+            std::thread::sleep(std::time::Duration::from_millis(30));
             // 按下 Ctrl
             keybd_event(VK_CONTROL as u8, 0, 0, 0);
             // 按下 V
