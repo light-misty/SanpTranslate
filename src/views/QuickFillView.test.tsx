@@ -233,16 +233,16 @@ describe('QuickFillView', () => {
     expect(textarea).toBeTruthy()
     expect(textarea.value).toBe(getTemplateText(QUICK_FILL_TEMPLATES[0].textKey))
 
-    // 自动保存携带该条目（包含 templateId）
+    // 自动保存携带该条目（包含 template_id）
     await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
     expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([
-      { shortcut: '', text: getTemplateText(QUICK_FILL_TEMPLATES[0].textKey), templateId: QUICK_FILL_TEMPLATES[0].id },
+      { shortcut: '', text: getTemplateText(QUICK_FILL_TEMPLATES[0].textKey), template_id: QUICK_FILL_TEMPLATES[0].id },
     ])
   })
 
   it('禁用模板后移除对应条目并自动保存', async () => {
     mockedGetConfig.mockResolvedValue(
-      makeConfig([{ shortcut: 'Ctrl+Alt+1', text: getTemplateText(QUICK_FILL_TEMPLATES[0].textKey), templateId: QUICK_FILL_TEMPLATES[0].id }])
+      makeConfig([{ shortcut: 'Ctrl+Alt+1', text: getTemplateText(QUICK_FILL_TEMPLATES[0].textKey), template_id: QUICK_FILL_TEMPLATES[0].id }])
     )
 
     render(<QuickFillView />)
@@ -278,7 +278,7 @@ describe('QuickFillView', () => {
     // 自动保存携带该条目
     await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
     expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([
-      { shortcut: '', text: getTemplateText(QUICK_FILL_TEMPLATES[1].textKey), templateId: QUICK_FILL_TEMPLATES[1].id },
+      { shortcut: '', text: getTemplateText(QUICK_FILL_TEMPLATES[1].textKey), template_id: QUICK_FILL_TEMPLATES[1].id },
     ])
   })
 

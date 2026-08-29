@@ -161,11 +161,9 @@ export default function QuickFillView() {
     setEntries(newEntries)
   }
 
-  /** 模板是否已启用：以条目中是否存在 templateId 字段作为开关状态 */
+  /** 模板是否已启用：以条目中是否存在 template_id 字段作为开关状态 */
   function isTemplateEnabled(template: QuickFillTemplate): boolean {
-    return entries.some(
-      (entry) => (entry as QuickFillEntry & { templateId?: string }).templateId === template.id
-    )
+    return entries.some((entry) => entry.template_id === template.id)
   }
 
   /** 切换模板启用状态：启用时生成一条可配置条目，禁用时移除对应条目 */
@@ -174,19 +172,15 @@ export default function QuickFillView() {
       if (isTemplateEnabled(template)) return
       // 启用时将模板 ID 存入条目，便于后续识别和管理
       const templateText = t(template.textKey)
-      const entry: QuickFillEntry & { templateId?: string } = {
+      const entry: QuickFillEntry = {
         shortcut: '',
         text: templateText,
-        templateId: template.id,
+        template_id: template.id,
       }
       setEntries([...entries, entry])
       logger.info(TAG, `已启用内置模板: ${t(template.titleKey)}`)
     } else {
-      setEntries(
-        entries.filter(
-          (entry) => (entry as QuickFillEntry & { templateId?: string }).templateId !== template.id
-        )
-      )
+      setEntries(entries.filter((entry) => entry.template_id !== template.id))
       logger.info(TAG, `已禁用内置模板: ${t(template.titleKey)}`)
     }
   }

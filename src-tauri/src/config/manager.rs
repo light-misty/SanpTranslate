@@ -30,11 +30,14 @@ impl Default for ShortcutConfig {
 
 /// 快捷填充条目：快捷键与填充文本的映射
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct QuickFillEntry {
     /// 快捷键（如 "Ctrl+Alt+1"）
     pub shortcut: String,
     /// 填充文本内容
     pub text: String,
+    /// 关联的内置模板 ID（启用模板时设置，用于识别模板来源）
+    pub template_id: Option<String>,
 }
 
 impl Default for QuickFillEntry {
@@ -42,6 +45,7 @@ impl Default for QuickFillEntry {
         QuickFillEntry {
             shortcut: String::new(),
             text: String::new(),
+            template_id: None,
         }
     }
 }
