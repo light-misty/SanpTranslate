@@ -19,7 +19,7 @@
 
 ## Introduction
 
-SnapTranslate is a desktop screenshot translation tool built with Tauri 2. Select any screen region → local OCR extracts text → AI translates → results display in a side panel. No popups, no interruptions.
+SnapTranslate is a desktop screenshot translation tool built with Tauri 2. Select any screen region → local OCR extracts text → AI translates → results display in a side panel. No popups, no interruptions. Supports quick text fill, allowing you to configure shortcut-to-text mappings that auto-fill text into the focused input box when pressed.
 
 ## Screenshots
 
