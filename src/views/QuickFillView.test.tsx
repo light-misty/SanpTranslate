@@ -5,6 +5,11 @@ import i18n from '@/i18n'
 import QuickFillView, { QUICK_FILL_TEMPLATES } from './QuickFillView'
 import * as tauri from '@/utils/tauri'
 
+/** 获取模板的翻译文本（与组件内部逻辑一致） */
+function getTemplateText(textKey: string): string {
+  return i18n.t(textKey)
+}
+
 // antd message 在 jsdom 环境依赖 matchMedia，这里 mock 掉以可控地断言提示调用
 const { antdMessage } = vi.hoisted(() => ({
   antdMessage: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() },
@@ -199,7 +204,8 @@ describe('QuickFillView', () => {
 
     // 模板标题与未启用状态可见，开关未勾选
     expect(screen.getByText('创建工作树提示词')).toBeDefined()
-    expect(screen.getByText('未启用')).toBeDefined()
+    expect(screen.getByText('提交和推送指令')).toBeDefined()
+    expect(screen.getAllByText('未启用').length).toBe(2)
     const checkbox = document.querySelector('.quickfill-template-switch input') as HTMLInputElement
     expect(checkbox.checked).toBe(false)
   })
@@ -225,18 +231,18 @@ describe('QuickFillView', () => {
     // 生成了包含模板文本的条目
     const textarea = document.querySelector('.quickfill-textarea') as HTMLTextAreaElement
     expect(textarea).toBeTruthy()
-    expect(textarea.value).toBe(QUICK_FILL_TEMPLATES[0].text)
+    expect(textarea.value).toBe(getTemplateText(QUICK_FILL_TEMPLATES[0].textKey))
 
-    // 自动保存携带该条目
+    // 自动保存携带该条目（包含 templateId）
     await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
     expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([
-      { shortcut: '', text: QUICK_FILL_TEMPLATES[0].text },
+      { shortcut: '', text: getTemplateText(QUICK_FILL_TEMPLATES[0].textKey), templateId: QUICK_FILL_TEMPLATES[0].id },
     ])
   })
 
   it('禁用模板后移除对应条目并自动保存', async () => {
     mockedGetConfig.mockResolvedValue(
-      makeConfig([{ shortcut: 'Ctrl+Alt+1', text: QUICK_FILL_TEMPLATES[0].text }])
+      makeConfig([{ shortcut: 'Ctrl+Alt+1', text: getTemplateText(QUICK_FILL_TEMPLATES[0].textKey), templateId: QUICK_FILL_TEMPLATES[0].id }])
     )
 
     render(<QuickFillView />)
@@ -253,5 +259,39 @@ describe('QuickFillView', () => {
     // 自动保存携带空条目列表
     await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
     expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([])
+  })
+
+  it('启用「提交和推送指令」模板后生成对应条目', async () => {
+    render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    // 获取第二个模板的复选框
+    const checkboxes = document.querySelectorAll('.quickfill-template-switch input') as NodeListOf<HTMLInputElement>
+    expect(checkboxes.length).toBe(2)
+    fireEvent.click(checkboxes[1])
+
+    // 生成了包含模板文本的条目
+    const textarea = document.querySelector('.quickfill-textarea') as HTMLTextAreaElement
+    expect(textarea).toBeTruthy()
+    expect(textarea.value).toBe(getTemplateText(QUICK_FILL_TEMPLATES[1].textKey))
+
+    // 自动保存携带该条目
+    await waitFor(() => expect(mockedSaveQuickFills).toHaveBeenCalled(), { timeout: 2000 })
+    expect(mockedSaveQuickFills.mock.calls[0][0]).toEqual([
+      { shortcut: '', text: getTemplateText(QUICK_FILL_TEMPLATES[1].textKey), templateId: QUICK_FILL_TEMPLATES[1].id },
+    ])
+  })
+
+  it('切换语言后模板标题显示对应语言', async () => {
+    const { rerender } = render(<QuickFillView />)
+
+    await screen.findByText('快捷文本填充')
+    expect(screen.getByText('创建工作树提示词')).toBeDefined()
+
+    // 切换到英文
+    await i18n.changeLanguage('en-US')
+    rerender(<QuickFillView />)
+    expect(screen.getByText('Create Worktree Prompt')).toBeDefined()
+    expect(screen.getByText('Commit and Push Instructions')).toBeDefined()
   })
 })

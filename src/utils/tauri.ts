@@ -40,6 +40,8 @@ export interface QuickFillEntry {
   shortcut: string
   /** 填充文本内容 */
   text: string
+  /** 关联的内置模板 ID（启用模板时设置，用于识别模板来源） */
+  templateId?: string
 }
 
 /** 区域裁剪结果，包含图像数据和窗口位置信息 */

@@ -174,5 +174,24 @@ export default {
     templates: 'Built-in Templates',
     templateEnabled: 'Enabled',
     templateDisabled: 'Disabled',
+    // Built-in template: Git worktree prompt
+    templateGitWorktreeTitle: 'Create Worktree Prompt',
+    templateGitWorktreeText: [
+      'Please create a new worktree for the current Git repository:',
+      '- All file modifications and git operations must be completed in the new directory after switching.',
+      '- This task allows and requires you to commit and push. Make staged commits, commit once for each completed feature, then continue with the next task. Push after each commit. Committing all code at once is prohibited. Developing all code before staged commits is prohibited.',
+      '- The branch name and path name should be generated based on the task description below.',
+      '- Naming rules:',
+      '  * Use lowercase English words only, connect multiple words with hyphens (-).',
+      '  * The prefix depends on the task type: use `feat/` for new features, `fix/` for bug fixes, etc.',
+      '  * The path is located in the parent directory of the repository, in the format `../<current-repo-name>-<suffix-part-of-branch-name>`.',
+      '  * If the generated branch name already exists, automatically add a numeric suffix (e.g., `-2`).',
+      '',
+      'After creation, switch to the worktree directory, then execute the following tasks:',
+      '',
+    ].join('\n'),
+    // Built-in template: Commit and push instructions
+    templateCommitPushTitle: 'Commit and Push Instructions',
+    templateCommitPushText: 'This task allows and requires you to commit and push. Make staged commits, commit once for each completed feature, then continue with the next task. Push after each commit. Committing all code at once is prohibited. Developing all code before staged commits is prohibited.',
   },
 }

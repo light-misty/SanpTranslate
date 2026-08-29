@@ -15,31 +15,23 @@ const TEXTAREA_MAX_HEIGHT = 200
 export interface QuickFillTemplate {
   /** 模板唯一标识 */
   id: string
-  /** 模板标题 */
-  title: string
-  /** 模板文本内容 */
-  text: string
+  /** 标题的 i18n key */
+  titleKey: string
+  /** 文本内容的 i18n key */
+  textKey: string
 }
 
-/** 系统内置模板列表（当前仅一个：创建工作树提示词），启用后生成可配置条目 */
+/** 系统内置模板列表，启用后生成可配置条目。标题和文本内容通过 i18n key 实现国际化 */
 export const QUICK_FILL_TEMPLATES: QuickFillTemplate[] = [
   {
     id: 'git-worktree-prompt',
-    title: '创建工作树提示词',
-    text: [
-      '请为当前 Git 仓库创建一个新的工作树（Worktree）：',
-      '- 所有文件修改、git 操作都必须在切换后的新目录内完成。',
-      '- 本任务允许并要求你进行提交推送，进行分阶段提交，每完成一个功能提交一次，再继续执行接下来的任务，每次提交都要推送。禁止一次性提交全部代码，禁止一次性开发完所有代码后分阶段提交。',
-      '- 分支名和路径名请根据下面的任务描述生成。',
-      '- 命名规则：',
-      '  * 全部使用小写英文单词，多个单词之间用连字符（-）连接。',
-      '  * 前缀根据任务类型决定：新功能使用 `feat/`，修复问题使用 `fix/` 等。',
-      '  * 路径位于仓库父级目录下，格式为 `../<当前仓库名>-<分支名中的后缀部分>`。',
-      '  * 如果生成的分支名已存在，则自动添加数字后缀（如 `-2`）。',
-      '',
-      '创建完成后，切换至该工作树目录，然后执行以下任务：',
-      '',
-    ].join('\n'),
+    titleKey: 'quickFill.templateGitWorktreeTitle',
+    textKey: 'quickFill.templateGitWorktreeText',
+  },
+  {
+    id: 'commit-push-instructions',
+    titleKey: 'quickFill.templateCommitPushTitle',
+    textKey: 'quickFill.templateCommitPushText',
   },
 ]
 
@@ -169,20 +161,33 @@ export default function QuickFillView() {
     setEntries(newEntries)
   }
 
-  /** 模板是否已启用：以是否存在文本一致的条目作为开关状态 */
+  /** 模板是否已启用：以条目中是否存在 templateId 字段作为开关状态 */
   function isTemplateEnabled(template: QuickFillTemplate): boolean {
-    return entries.some((entry) => entry.text === template.text)
+    return entries.some(
+      (entry) => (entry as QuickFillEntry & { templateId?: string }).templateId === template.id
+    )
   }
 
   /** 切换模板启用状态：启用时生成一条可配置条目，禁用时移除对应条目 */
   function toggleTemplate(template: QuickFillTemplate, enabled: boolean) {
     if (enabled) {
       if (isTemplateEnabled(template)) return
-      setEntries([...entries, { shortcut: '', text: template.text }])
-      logger.info(TAG, `已启用内置模板: ${template.title}`)
+      // 启用时将模板 ID 存入条目，便于后续识别和管理
+      const templateText = t(template.textKey)
+      const entry: QuickFillEntry & { templateId?: string } = {
+        shortcut: '',
+        text: templateText,
+        templateId: template.id,
+      }
+      setEntries([...entries, entry])
+      logger.info(TAG, `已启用内置模板: ${t(template.titleKey)}`)
     } else {
-      setEntries(entries.filter((entry) => entry.text !== template.text))
-      logger.info(TAG, `已禁用内置模板: ${template.title}`)
+      setEntries(
+        entries.filter(
+          (entry) => (entry as QuickFillEntry & { templateId?: string }).templateId !== template.id
+        )
+      )
+      logger.info(TAG, `已禁用内置模板: ${t(template.titleKey)}`)
     }
   }
 
@@ -222,7 +227,7 @@ export default function QuickFillView() {
           const enabled = isTemplateEnabled(template)
           return (
             <div key={template.id} className="quickfill-template-item">
-              <span className="quickfill-template-title">{template.title}</span>
+              <span className="quickfill-template-title">{t(template.titleKey)}</span>
               <label className="quickfill-template-switch">
                 <input
                   type="checkbox"
