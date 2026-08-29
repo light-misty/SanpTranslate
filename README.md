@@ -27,6 +27,18 @@ SnapTranslate is a desktop screenshot translation tool built with Tauri 2. Selec
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+<p align="center">
+  <img src="docs/assets/readme-desktop.png" alt="Desktop & Taskbar" style="max-width: 100%; border-radius: 8px;" />
+  <br/>
+  <em>Desktop Shortcuts & System Monitor</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/readme-tray-menu.png" alt="Tray Menu" style="max-width: 100%; border-radius: 8px;" />
+  <br/>
+  <em>Right-click Tray Menu</em>
+</p>
+
 ## Download
 
 Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):

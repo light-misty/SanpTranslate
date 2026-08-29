@@ -27,6 +27,18 @@ Tauri 2 기반 데스크톱 스크린샷 번역 도구입니다. 화면 영역�
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+<p align="center">
+  <img src="docs/assets/readme-desktop.png" alt="데스크톱과 작업 표시줄" style="max-width: 100%; border-radius: 8px;" />
+  <br/>
+  <em>데스크톱 바로가기와 시스템 모니터</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/readme-tray-menu.png" alt="트레이 메뉴" style="max-width: 100%; border-radius: 8px;" />
+  <br/>
+  <em>트레이 우클릭 메뉴</em>
+</p>
+
 ## 다운로드 및 설치
 
 [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) 페이지에서 다운로드:

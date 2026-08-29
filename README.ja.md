@@ -27,6 +27,18 @@ Tauri 2 ベースのデスクトップスクリーンショット翻訳ツール
   <img src="docs/assets/readme-preview.png" alt="SnapTranslate" style="max-width: 100%; border-radius: 8px;" />
 </p>
 
+<p align="center">
+  <img src="docs/assets/readme-desktop.png" alt="デスクトップとタスクバー" style="max-width: 100%; border-radius: 8px;" />
+  <br/>
+  <em>デスクトップショートカットとシステムモニター</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/readme-tray-menu.png" alt="トレイメニュー" style="max-width: 100%; border-radius: 8px;" />
+  <br/>
+  <em>トレイ右クリックメニュー</em>
+</p>
+
 ## ダウンロードとインストール
 
 [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases) からダウンロード:
