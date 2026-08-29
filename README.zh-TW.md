@@ -51,7 +51,7 @@
 
 ⚠️ **系統需求：**
 
-- **Windows**：Windows 10 (1803+)，需 WebView2（系統內建）
+- **Windows**：下載即可使用
 - **macOS**：macOS 12+，需 WebKit（系統內建），且需透過 Homebrew 安裝 Tesseract 及語言包：
   ```bash
   brew install tesseract tesseract-lang

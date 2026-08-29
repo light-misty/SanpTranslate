@@ -51,7 +51,7 @@ Download from [Releases](https://github.com/XuMingKe-06/SanpTranslate/releases):
 
 ⚠️ **System Requirements:**
 
-- **Windows**: Windows 10 (1803+), WebView2 (built into the system)
+- **Windows**: download and use
 - **macOS**: macOS 12+, WebKit (built into the system). Requires Tesseract and language data installed via Homebrew:
   ```bash
   brew install tesseract tesseract-lang

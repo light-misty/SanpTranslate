@@ -51,7 +51,7 @@ Tauri 2 기반 데스크톱 스크린샷 번역 도구입니다. 화면 영역�
 
 ⚠️ **시스템 요구 사항:**
 
-- **Windows**: Windows 10 (1803+), WebView2 필요 (시스템 기본 제공)
+- **Windows**: 다운로드 후 바로 사용 가능
 - **macOS**: macOS 12+, WebKit 필요 (시스템 기본 제공). Homebrew를 통해 Tesseract 및 언어 데이터 패키지 설치 필요:
   ```bash
   brew install tesseract tesseract-lang
