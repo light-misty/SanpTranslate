@@ -28,13 +28,13 @@ Tauri 2 ベースのデスクトップスクリーンショット翻訳ツール
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-desktop.png" alt="デスクトップとタスクバー" style="max-width: 100%; border-radius: 8px;" />
+  <img src="docs/assets/readme-desktop.png" alt="デスクトップとタスクバー" style="max-width: 50%; border-radius: 8px;" />
   <br/>
   <em>デスクトップショートカットとシステムモニター</em>
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-tray-menu.png" alt="トレイメニュー" style="max-width: 100%; border-radius: 8px;" />
+  <img src="docs/assets/readme-tray-menu.png" alt="トレイメニュー" style="max-width: 50%; border-radius: 8px;" />
   <br/>
   <em>トレイ右クリックメニュー</em>
 </p>

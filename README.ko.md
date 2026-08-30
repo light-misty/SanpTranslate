@@ -28,13 +28,13 @@ Tauri 2 기반 데스크톱 스크린샷 번역 도구입니다. 화면 영역�
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-desktop.png" alt="데스크톱과 작업 표시줄" style="max-width: 100%; border-radius: 8px;" />
+  <img src="docs/assets/readme-desktop.png" alt="데스크톱과 작업 표시줄" style="max-width: 50%; border-radius: 8px;" />
   <br/>
   <em>데스크톱 바로가기와 시스템 모니터</em>
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-tray-menu.png" alt="트레이 메뉴" style="max-width: 100%; border-radius: 8px;" />
+  <img src="docs/assets/readme-tray-menu.png" alt="트레이 메뉴" style="max-width: 50%; border-radius: 8px;" />
   <br/>
   <em>트레이 우클릭 메뉴</em>
 </p>

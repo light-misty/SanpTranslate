@@ -28,13 +28,13 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-desktop.png" alt="桌面與工作列" style="max-width: 100%; border-radius: 8px;" />
+  <img src="docs/assets/readme-desktop.png" alt="桌面與工作列" style="max-width: 50%; border-radius: 8px;" />
   <br/>
   <em>桌面快捷方式與系統監控</em>
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-tray-menu.png" alt="托盤選單" style="max-width: 100%; border-radius: 8px;" />
+  <img src="docs/assets/readme-tray-menu.png" alt="托盤選單" style="max-width: 50%; border-radius: 8px;" />
   <br/>
   <em>右鍵托盤選單</em>
 </p>
