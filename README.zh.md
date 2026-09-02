@@ -28,13 +28,13 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-desktop.png" alt="桌面与任务栏" style="max-width: 50%; border-radius: 8px;" />
+  <img src="docs/assets/readme-desktop.png" alt="桌面与任务栏" style="max-width: 30%; border-radius: 8px;" />
   <br/>
   <em>桌面快捷方式与系统监控</em>
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-tray-menu.png" alt="托盘菜单" style="max-width: 50%; border-radius: 8px;" />
+  <img src="docs/assets/readme-tray-menu.png" alt="托盘菜单" style="max-width: 30%; border-radius: 8px;" />
   <br/>
   <em>右键托盘菜单</em>
 </p>
