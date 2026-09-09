@@ -150,7 +150,7 @@ export default {
   textTranslate: {
     title: '文本翻译',
     inputPlaceholder: 'Ctrl + Enter 快捷翻译',
-    shortcutHint: 'Ctrl + Enter 快捷翻译',
+    shortcutHint: '双击关闭面板',
     translate: '翻译',
     retranslate: '重新翻译',
     translating: '翻译中...',

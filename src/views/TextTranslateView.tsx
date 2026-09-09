@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getConfig, translateText, writeClipboardText } from '@/utils/tauri'
@@ -6,6 +6,9 @@ import { logger } from '@/utils/logger'
 import './TextTranslateView.css'
 
 const TAG = 'TextTranslateView'
+
+/** 拖拽激活阈值（像素）：超过此次移动才触发拖拽 */
+const DRAG_THRESHOLD = 5
 
 type TranslateStatus = 'idle' | 'translating' | 'done' | 'error'
 
@@ -30,6 +33,12 @@ export default function TextTranslateView() {
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 拖拽状态：记录是否正在拖拽以及初始鼠标位置
+  const dragState = useRef<{ isDragging: boolean; startX: number; startY: number }>({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+  })
 
   // 目标语言选项列表（与设置页面一致，使用 i18n 标签）
   const languageOptions: LanguageOption[] = [
@@ -135,22 +144,48 @@ export default function TextTranslateView() {
   }
 
   /** 关闭窗口 */
-  async function onClose() {
+  const onClose = useCallback(async () => {
     try {
       await getCurrentWindow().destroy()
     } catch (err) {
       logger.error(TAG, `关闭窗口失败: ${err}`, err)
     }
+  }, [])
+
+  /** 鼠标按下：记录拖拽起点 */
+  function onMouseDown(e: React.MouseEvent<HTMLTextAreaElement>) {
+    // 仅处理鼠标左键
+    if (e.button !== 0) return
+    dragState.current.isDragging = false
+    dragState.current.startX = e.clientX
+    dragState.current.startY = e.clientY
+  }
+
+  /** 鼠标移动：超过阈值时启动系统拖拽 */
+  function onMouseMove(e: React.MouseEvent<HTMLTextAreaElement>) {
+    if (e.buttons !== 1) return // 左键未按下
+    if (dragState.current.isDragging) return
+
+    const dx = Math.abs(e.clientX - dragState.current.startX)
+    const dy = Math.abs(e.clientY - dragState.current.startY)
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+      dragState.current.isDragging = true
+      // 调用 Tauri API 启动系统级窗口拖拽
+      getCurrentWindow().startDragging().catch((err) => {
+        logger.error(TAG, `启动拖拽失败: ${err}`, err)
+      })
+    }
+  }
+
+  /** 双击关闭面板 */
+  function onDoubleClick() {
+    void onClose()
   }
 
   /** Esc 键关闭窗口的处理函数 */
-  async function handleEscKey(e: KeyboardEvent) {
+  function handleEscKey(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      try {
-        await getCurrentWindow().destroy()
-      } catch (err) {
-        logger.error(TAG, `Esc关闭失败: ${err}`, err)
-      }
+      void onClose()
     }
   }
 
@@ -184,17 +219,7 @@ export default function TextTranslateView() {
 
   return (
     <div className="text-translate-box">
-      {/* 顶部拖拽区域 */}
-      <div className="drag-bar" data-tauri-drag-region>
-        <button className="close-btn" onClick={onClose} title={t('common.close')}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-
-      {/* 主输入区域（占满剩余空间） */}
+      {/* 主输入区域（占满整个窗口） */}
       <div className="input-container">
         <textarea
           ref={inputRef}
@@ -204,6 +229,9 @@ export default function TextTranslateView() {
           placeholder={t('textTranslate.inputPlaceholder')}
           onChange={onInputChange}
           onKeyDown={onKeyDown}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onDoubleClick={onDoubleClick}
         />
 
         {/* 底部控制条 */}
