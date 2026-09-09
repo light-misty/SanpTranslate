@@ -1,55 +1,32 @@
-/* ========== 文本翻译窗口：可调整大小的输入框面板 ========== */
+/* ========== 文本翻译窗口：即一个大的输入框，无容器 ========== */
 
-.tt-container {
+.text-translate-box {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* 主内容区域（缩放操作的参考框架） */
-.tt-content {
+/* 主输入容器 */
+.input-container {
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  /* 内边距作为边缘缩放热区 */
-  padding: 6px;
-  box-sizing: border-box;
-}
-
-/* 输入区域容器 */
-.tt-input-wrap {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  background: rgba(24, 24, 28, 0.85);
-  overflow: hidden;
-}
-
-/* 内容可滚动的内部区域 */
-.tt-input-scroll {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 }
 
 /* 文本输入框 */
-.tt-input {
+.text-input {
   flex: 1;
   width: 100%;
-  padding: 12px 12px 8px 12px;
-  border: none;
-  background: transparent;
+  min-height: 60px;
+  padding: 12px 14px 38px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(24, 24, 28, 0.85);
   color: #f0f0f0;
   font-size: 14px;
   line-height: 1.6;
@@ -58,48 +35,61 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   user-select: text;
   box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.tt-input::placeholder {
+.text-input:focus {
+  border-color: rgba(58, 123, 213, 0.5);
+  background: rgba(24, 24, 28, 0.95);
+}
+
+.text-input::placeholder {
   color: rgba(255, 255, 255, 0.35);
 }
 
-.tt-input::-webkit-scrollbar {
+.text-input::-webkit-scrollbar {
   width: 4px;
 }
 
-.tt-input::-webkit-scrollbar-track {
+.text-input::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tt-input::-webkit-scrollbar-thumb {
+.text-input::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
 }
 
 /* 底部控制条 */
-.tt-controls {
+.controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  background: rgba(20, 20, 24, 0.6);
+  padding: 0 10px 8px 14px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(24, 24, 28, 0.85) 60%, transparent);
 }
 
-.tt-cache-hint {
+.controls-bar > * {
+  pointer-events: auto;
+}
+
+.cache-hint {
   font-size: 11px;
   color: #4caf50;
 }
 
-.tt-hint {
+.shortcut-hint {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.3);
   user-select: none;
 }
 
-.tt-controls-right {
+.controls-right {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -107,12 +97,12 @@
 }
 
 /* 复制按钮 */
-.tt-copy-btn {
+.copy-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border: none;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.06);
@@ -121,21 +111,21 @@
   transition: all 0.15s;
 }
 
-.tt-copy-btn:hover {
+.copy-btn:hover {
   background: rgba(255, 255, 255, 0.12);
   color: #e0e0e0;
 }
 
-.tt-copy-btn-ok {
+.copy-btn-copied {
   background: rgba(76, 175, 80, 0.2);
   color: #4caf50;
 }
 
 /* 目标语言选择器 */
-.tt-lang-select {
+.target-language-select {
   appearance: none;
   -webkit-appearance: none;
-  padding: 4px 20px 4px 6px;
+  padding: 4px 22px 4px 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.06);
@@ -146,82 +136,88 @@
   cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 5px center;
+  background-position: right 6px center;
   background-size: 10px 6px;
 }
 
-.tt-lang-select:hover {
+.target-language-select:hover {
   border-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-.tt-lang-select option {
+.target-language-select:focus {
+  border-color: rgba(58, 123, 213, 0.5);
+}
+
+.target-language-select option {
   background: #2a2a2e;
   color: #f0f0f0;
 }
 
 /* 翻译按钮 */
-.tt-translate-btn {
-  padding: 4px 14px;
+.translate-btn {
+  padding: 4px 16px;
   border: none;
   border-radius: 4px;
   background: #3a7bd5;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
-  height: 24px;
+  height: 26px;
   flex-shrink: 0;
 }
 
-.tt-translate-btn:hover:not(:disabled) {
+.translate-btn:hover:not(:disabled) {
   background: #4a8be5;
 }
 
-.tt-translate-btn:disabled {
+.translate-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.tt-translate-btn-loading {
+.translate-btn-translating {
   background: #555;
 }
 
 /* 译文面板 */
-.tt-result {
+.translation-panel {
   flex-shrink: 0;
-  max-height: 180px;
+  max-height: 200px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(20, 20, 24, 0.6);
-  overflow-y: auto;
 }
 
-.tt-result-inner {
-  padding: 8px 14px 10px 14px;
+.translation-content {
+  padding: 10px 16px 12px 16px;
   font-size: 14px;
   line-height: 1.7;
   color: #e8e8e8;
   white-space: pre-wrap;
   word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
   user-select: text;
 }
 
-.tt-result::-webkit-scrollbar {
+.translation-content::-webkit-scrollbar {
   width: 4px;
 }
 
-.tt-result::-webkit-scrollbar-track {
+.translation-content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tt-result::-webkit-scrollbar-thumb {
+.translation-content::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
 }
 
 /* 错误提示 */
-.tt-error {
-  padding: 6px 14px;
+.error-message {
+  padding: 6px 16px;
   font-size: 12px;
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);

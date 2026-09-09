@@ -1,24 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getConfig, translateText, writeClipboardText } from '@/utils/tauri'
 import { logger } from '@/utils/logger'
 import './TextTranslateView.css'
 
 const TAG = 'TextTranslateView'
 
-/* ========== 常量 ========== */
-
-/** 边缘检测宽度（像素） */
-const EDGE_SIZE = 6
-/** 拖拽移动激活阈值 */
+/** 拖拽激活阈值（像素）：超过此次移动才触发拖拽 */
 const DRAG_THRESHOLD = 5
-/** 文本框内容最大高度（像素） */
-const MAX_INPUT_HEIGHT = 600
-/** 文本框内容最小高度（像素） */
-const MIN_INPUT_HEIGHT = 60
 
-type Edge = 'top' | 'bottom' | 'left' | 'right' | 'tl' | 'tr' | 'bl' | 'br' | null
 type TranslateStatus = 'idle' | 'translating' | 'done' | 'error'
 
 interface LanguageOption {
@@ -26,7 +17,7 @@ interface LanguageOption {
   value: string
 }
 
-/** 文本翻译窗口 */
+/** 文本翻译窗口视图：窗口即输入框 */
 export default function TextTranslateView() {
   const { t } = useTranslation()
 
@@ -36,18 +27,20 @@ export default function TextTranslateView() {
   const [hasTranslation, setHasTranslation] = useState(false)
   const [fromCache, setFromCache] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  // 目标语言：默认从配置读取，用户可在此窗口临时覆盖，不回写设置
   const [targetLanguage, setTargetLanguage] = useState('zh-CN')
   const [copyFeedback, setCopyFeedback] = useState(false)
 
-  // Refs
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  /** 拖拽移动起点 */
-  const moveStart = useRef({ x: 0, y: 0, active: false })
-  /** 缩放拖拽状态 */
-  const resizeState = useRef({ active: false, edge: null as Edge, startX: 0, startY: 0, startW: 0, startH: 0 })
+  const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 拖拽状态：记录是否正在拖拽以及初始鼠标位置
+  const dragState = useRef<{ isDragging: boolean; startX: number; startY: number }>({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+  })
 
+  // 目标语言选项列表（与设置页面一致，使用 i18n 标签）
   const languageOptions: LanguageOption[] = [
     { label: t('settings.langZhCN'), value: 'zh-CN' },
     { label: t('settings.langZhTW'), value: 'zh-TW' },
@@ -60,24 +53,29 @@ export default function TextTranslateView() {
     { label: t('settings.langRu'), value: 'ru' },
   ]
 
-  /* ========== 翻译逻辑 ========== */
-
+  /** 翻译核心逻辑 */
   async function doTranslate(forceRetranslate: boolean) {
     if (!inputText.trim()) return
+
     setTranslateStatus('translating')
     setErrorMessage('')
+
     try {
       logger.info(TAG, `开始文本翻译，目标语言=${targetLanguage}，强制重新翻译=${forceRetranslate}`)
+
       const result = await translateText(inputText.trim(), targetLanguage, forceRetranslate)
+
       if (!result.translated_text) {
         logger.info(TAG, '翻译结果为空')
         setTranslateStatus('idle')
         return
       }
+
       setTranslatedText(result.translated_text)
       setHasTranslation(true)
       setTranslateStatus('done')
       setFromCache(result.from_cache)
+
       logger.info(TAG, `文本翻译完成，from_cache=${result.from_cache}`)
     } catch (err) {
       setErrorMessage(String(err))
@@ -86,21 +84,26 @@ export default function TextTranslateView() {
     }
   }
 
+  /** 翻译/重新翻译按钮点击 */
   function onTranslateClick() {
-    if (translateStatus === 'done' || translateStatus === 'error') doTranslate(true)
-    else doTranslate(false)
-  }
-
-  /** Ctrl+Enter 快捷翻译 */
-  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault()
-      if (translateStatus === 'translating') return
-      if (translateStatus === 'done' || translateStatus === 'error') doTranslate(true)
-      else doTranslate(false)
+    if (translateStatus === 'done' || translateStatus === 'error') {
+      doTranslate(true)
+    } else {
+      doTranslate(false)
     }
   }
 
+  /** Ctrl+Enter 快捷翻译 */
+  function onTranslate() {
+    if (translateStatus === 'translating') return
+    if (translateStatus === 'done' || translateStatus === 'error') {
+      doTranslate(true)
+    } else {
+      doTranslate(false)
+    }
+  }
+
+  /** 输入变化时重置状态 */
   function onInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setInputText(e.target.value)
     if (translateStatus === 'done' || translateStatus === 'error') {
@@ -110,32 +113,37 @@ export default function TextTranslateView() {
       setErrorMessage('')
       setFromCache(false)
     }
-    autoGrowInput(e.target)
   }
 
-  /** 输入框自动增长高度 */
-  function autoGrowInput(el: HTMLTextAreaElement) {
-    el.style.height = 'auto'
-    const desired = Math.max(el.scrollHeight, MIN_INPUT_HEIGHT)
-    el.style.height = `${Math.min(desired, MAX_INPUT_HEIGHT)}px`
+  /** Ctrl+Enter 键盘处理（React 合成事件，无需原生修饰符） */
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault()
+      onTranslate()
+    }
   }
 
+  /** 复制译文到剪贴板 */
   async function onCopyTranslation() {
     if (!translatedText) return
     try {
       await writeClipboardText(translatedText)
       logger.info(TAG, '译文已复制到剪贴板')
+      // 显示复制成功反馈
       setCopyFeedback(true)
-      if (copyTimer.current) clearTimeout(copyTimer.current)
-      copyTimer.current = setTimeout(() => {
+      if (copyFeedbackTimer.current) {
+        clearTimeout(copyFeedbackTimer.current)
+      }
+      copyFeedbackTimer.current = setTimeout(() => {
         setCopyFeedback(false)
-        copyTimer.current = null
+        copyFeedbackTimer.current = null
       }, 1500)
     } catch (err) {
       logger.error(TAG, `复制译文失败: ${err}`, err)
     }
   }
 
+  /** 关闭窗口 */
   const onClose = useCallback(async () => {
     try {
       await getCurrentWindow().destroy()
@@ -144,132 +152,46 @@ export default function TextTranslateView() {
     }
   }, [])
 
-  /* ========== 双击关闭 ========== */
-
-  function onDoubleClick() {
-    void onClose()
-  }
-
-  /* ========== 窗口拖拽移动 ========== */
-
-  function onInputMouseDown(e: React.MouseEvent<HTMLTextAreaElement>) {
+  /** 鼠标按下：记录拖拽起点 */
+  function onMouseDown(e: React.MouseEvent<HTMLTextAreaElement>) {
+    // 仅处理鼠标左键
     if (e.button !== 0) return
-    moveStart.current = { x: e.clientX, y: e.clientY, active: false }
+    dragState.current.isDragging = false
+    dragState.current.startX = e.clientX
+    dragState.current.startY = e.clientY
   }
 
-  function onInputMouseMove(e: React.MouseEvent<HTMLTextAreaElement>) {
-    if (e.buttons !== 1) return
-    if (moveStart.current.active) return
-    const dx = Math.abs(e.clientX - moveStart.current.x)
-    const dy = Math.abs(e.clientY - moveStart.current.y)
+  /** 鼠标移动：超过阈值时启动系统拖拽 */
+  function onMouseMove(e: React.MouseEvent<HTMLTextAreaElement>) {
+    if (e.buttons !== 1) return // 左键未按下
+    if (dragState.current.isDragging) return
+
+    const dx = Math.abs(e.clientX - dragState.current.startX)
+    const dy = Math.abs(e.clientY - dragState.current.startY)
     if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-      moveStart.current.active = true
+      dragState.current.isDragging = true
+      // 调用 Tauri API 启动系统级窗口拖拽
       getCurrentWindow().startDragging().catch((err) => {
         logger.error(TAG, `启动拖拽失败: ${err}`, err)
       })
     }
   }
 
-  /* ========== 边缘缩放 ========== */
-
-  /** 判断 (x, y) 位于 container 的哪条边 */
-  function detectEdge(x: number, y: number, rect: DOMRect): Edge {
-    const onLeft = x - rect.left < EDGE_SIZE
-    const onRight = rect.right - x < EDGE_SIZE
-    const onTop = y - rect.top < EDGE_SIZE
-    const onBottom = rect.bottom - y < EDGE_SIZE
-    if (onTop && onLeft) return 'tl'
-    if (onTop && onRight) return 'tr'
-    if (onBottom && onLeft) return 'bl'
-    if (onBottom && onRight) return 'br'
-    if (onTop) return 'top'
-    if (onBottom) return 'bottom'
-    if (onLeft) return 'left'
-    if (onRight) return 'right'
-    return null
+  /** 双击关闭面板 */
+  function onDoubleClick() {
+    void onClose()
   }
 
-  function edgeCursor(e: Edge): string {
-    switch (e) {
-      case 'top': case 'bottom': return 'ns-resize'
-      case 'left': case 'right': return 'ew-resize'
-      case 'tl': case 'br': return 'nwse-resize'
-      case 'tr': case 'bl': return 'nesw-resize'
-      default: return 'default'
-    }
-  }
-
-  function onContentMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (resizeState.current.active || moveStart.current.active) return
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const detected = detectEdge(e.clientX, e.clientY, rect)
-    if (containerRef.current) {
-      containerRef.current.style.cursor = edgeCursor(detected)
-    }
-  }
-
-  function onContentMouseLeave() {
-    if (!resizeState.current.active) {
-      if (containerRef.current) containerRef.current.style.cursor = 'default'
-    }
-  }
-
-  function onContentMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const detected = detectEdge(e.clientX, e.clientY, rect)
-    if (!detected) return
-    e.preventDefault()
-    e.stopPropagation()
-    resizeState.current = {
-      active: true,
-      edge: detected,
-      startX: e.clientX,
-      startY: e.clientY,
-      startW: 0,
-      startH: 0,
-    }
-    getCurrentWindow().innerSize().then((size) => {
-      resizeState.current.startW = size.width
-      resizeState.current.startH = size.height
-    })
-  }
-
-  const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
-    const st = resizeState.current
-    if (!st.active || !st.edge) return
-    const dx = e.clientX - st.startX
-    const dy = e.clientY - st.startY
-    let w = st.startW
-    let h = st.startH
-    if (st.edge.includes('right')) w = st.startW + dx
-    if (st.edge.includes('left')) w = st.startW - dx
-    if (st.edge.includes('bottom')) h = st.startH + dy
-    if (st.edge.includes('top')) h = st.startH - dy
-    w = Math.max(360, Math.min(1200, w))
-    h = Math.max(120, Math.min(800, h))
-    getCurrentWindow().setSize(new LogicalSize(Math.round(w), Math.round(h))).catch((err) => {
-      logger.error(TAG, `设置窗口尺寸失败: ${err}`, err)
-    })
-  }, [])
-
-  const handleGlobalMouseUp = useCallback(() => {
-    if (resizeState.current.active) {
-      resizeState.current.active = false
-      resizeState.current.edge = null
-      if (containerRef.current) containerRef.current.style.cursor = 'default'
-    }
-  }, [])
-
+  /** Esc 键关闭窗口的处理函数 */
   function handleEscKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') void onClose()
+    if (e.key === 'Escape') {
+      void onClose()
+    }
   }
-
-  /* ========== 生命周期 ========== */
 
   useEffect(() => {
     logger.info(TAG, 'TextTranslateView onMounted')
+    // 从配置读取默认目标语言
     ;(async () => {
       try {
         const config = await getConfig()
@@ -279,105 +201,99 @@ export default function TextTranslateView() {
         logger.error(TAG, `读取配置失败，使用默认目标语言: ${err}`)
       }
     })()
-    requestAnimationFrame(() => inputRef.current?.focus())
-
-    document.addEventListener('mousemove', handleGlobalMouseMove)
-    document.addEventListener('mouseup', handleGlobalMouseUp)
+    // 自动聚焦输入框（DOM 就绪后兜底聚焦）
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
+    // Esc 键关闭窗口
     document.addEventListener('keydown', handleEscKey)
-
     return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove)
-      document.removeEventListener('mouseup', handleGlobalMouseUp)
+      // 清理 Esc 键监听器与复制反馈计时器
       document.removeEventListener('keydown', handleEscKey)
-      if (copyTimer.current) clearTimeout(copyTimer.current)
+      if (copyFeedbackTimer.current) {
+        clearTimeout(copyFeedbackTimer.current)
+      }
     }
-  }, [handleGlobalMouseMove, handleGlobalMouseUp, onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
-    <div className="tt-container" ref={containerRef}>
-      {/* 内容区域（含边缘缩放热区） */}
-      <div
-        className="tt-content"
-        onMouseMove={onContentMouseMove}
-        onMouseLeave={onContentMouseLeave}
-        onMouseDown={onContentMouseDown}
-      >
-        {/* 输入框边框 */}
-        <div className="tt-input-wrap">
-          <div className="tt-input-scroll">
-            <textarea
-              ref={inputRef}
-              autoFocus
-              value={inputText}
-              className="tt-input"
-              placeholder={t('textTranslate.inputPlaceholder')}
-              onChange={onInputChange}
-              onKeyDown={onKeyDown}
-              onMouseDown={onInputMouseDown}
-              onMouseMove={onInputMouseMove}
-              onDoubleClick={onDoubleClick}
-            />
-          </div>
+    <div className="text-translate-box">
+      {/* 主输入区域（占满整个窗口） */}
+      <div className="input-container">
+        <textarea
+          ref={inputRef}
+          autoFocus
+          value={inputText}
+          className="text-input"
+          placeholder={t('textTranslate.inputPlaceholder')}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onDoubleClick={onDoubleClick}
+        />
 
-          {/* 底部控制条 */}
-          <div className="tt-controls">
-            {hasTranslation && fromCache && (
-              <span className="tt-cache-hint">{t('controlBar.cacheHit')}</span>
-            )}
-            <span className="tt-hint">{t('textTranslate.shortcutHint')}</span>
-            <div className="tt-controls-right">
-              {hasTranslation && (
-                <button
-                  className={`tt-copy-btn${copyFeedback ? ' tt-copy-btn-ok' : ''}`}
-                  onClick={onCopyTranslation}
-                  title={t('textTranslate.copyTranslation')}
-                >
-                  {!copyFeedback ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              )}
-              <select
-                value={targetLanguage}
-                className="tt-lang-select"
-                onChange={(ev) => setTargetLanguage(ev.target.value)}
-              >
-                {languageOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+        {/* 底部控制条 */}
+        <div className="controls-bar">
+          {hasTranslation && fromCache && (
+            <span className="cache-hint">{t('controlBar.cacheHit')}</span>
+          )}
+          <span className="shortcut-hint">{t('textTranslate.shortcutHint')}</span>
+          <div className="controls-right">
+            {hasTranslation && (
               <button
-                className={`tt-translate-btn${translateStatus === 'translating' ? ' tt-translate-btn-loading' : ''}`}
-                disabled={translateStatus === 'translating' || !inputText.trim()}
-                onClick={onTranslateClick}
+                className={`copy-btn${copyFeedback ? ' copy-btn-copied' : ''}`}
+                onClick={onCopyTranslation}
+                title={t('textTranslate.copyTranslation')}
               >
-                {translateStatus === 'translating'
-                  ? t('textTranslate.translating')
-                  : translateStatus === 'done' || translateStatus === 'error'
-                    ? t('textTranslate.retranslate')
-                    : t('textTranslate.translate')}
+                {!copyFeedback ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
               </button>
-            </div>
+            )}
+            <select
+              value={targetLanguage}
+              className="target-language-select"
+              onChange={(e) => setTargetLanguage(e.target.value)}
+            >
+              {languageOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className={`translate-btn${translateStatus === 'translating' ? ' translate-btn-translating' : ''}`}
+              disabled={translateStatus === 'translating' || !inputText.trim()}
+              onClick={onTranslateClick}
+            >
+              {translateStatus === 'translating'
+                ? t('textTranslate.translating')
+                : translateStatus === 'done' || translateStatus === 'error'
+                  ? t('textTranslate.retranslate')
+                  : t('textTranslate.translate')}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* 译文面板 */}
+      {/* 译文面板（有翻译结果时显示在输入框下方） */}
       {hasTranslation && (
-        <div className="tt-result">
-          <div className="tt-result-inner">{translatedText}</div>
+        <div className="translation-panel">
+          <div className="translation-content">{translatedText}</div>
         </div>
       )}
 
       {/* 错误提示 */}
-      {errorMessage && <div className="tt-error">{errorMessage}</div>}
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
     </div>
   )
 }

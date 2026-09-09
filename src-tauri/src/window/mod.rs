@@ -179,9 +179,9 @@ pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
     let monitor_x = monitor.position().x as f64 / scale_factor;
     let monitor_y = monitor.position().y as f64 / scale_factor;
 
-    // 初始窗口尺寸
+    // 窗口尺寸
     let window_w = 600.0;
-    let window_h = 160.0;
+    let window_h = 400.0;
 
     // 屏幕下方居中
     let x = monitor_x + (monitor_w - window_w) / 2.0;
@@ -199,9 +199,7 @@ pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
         builder
             .shadow(false)
             .focusable(true)
-            .resizable(true)
-            .min_inner_size(360.0, 120.0)
-            .max_inner_size(1200.0, 800.0)
+            .resizable(false)
             .skip_taskbar(true)
             .position(x, y)
             .inner_size(window_w, window_h)
