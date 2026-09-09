@@ -149,7 +149,7 @@ export default {
   // 文本翻译
   textTranslate: {
     title: '文本翻译',
-    inputPlaceholder: '输入或粘贴要翻译的文本...',
+    inputPlaceholder: 'Ctrl + Enter 快捷翻译',
     shortcutHint: 'Ctrl + Enter 快捷翻译',
     translate: '翻译',
     retranslate: '重新翻译',

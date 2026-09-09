@@ -14,7 +14,7 @@ interface LanguageOption {
   value: string
 }
 
-/** 文本翻译窗口视图：输入、翻译、复制译文 */
+/** 文本翻译窗口视图：窗口即输入框 */
 export default function TextTranslateView() {
   const { t } = useTranslation()
 
@@ -183,85 +183,83 @@ export default function TextTranslateView() {
   }, [])
 
   return (
-    <div className="text-translate-container">
-      {/* 可拖拽的标题栏 */}
-      <div className="title-bar" data-tauri-drag-region onDoubleClick={onClose}>
-        <span className="title-text">{t('textTranslate.title')}</span>
+    <div className="text-translate-box">
+      {/* 顶部拖拽区域 */}
+      <div className="drag-bar" data-tauri-drag-region>
         <button className="close-btn" onClick={onClose} title={t('common.close')}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
 
-      {/* 输入区域 */}
-      <div className="input-area">
-        <div className="input-wrapper">
-          <textarea
-            ref={inputRef}
-            autoFocus
-            value={inputText}
-            className="text-input"
-            placeholder={t('textTranslate.inputPlaceholder')}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-          />
-          <div className="input-footer">
-            <div className="shortcut-hint">{t('textTranslate.shortcutHint')}</div>
-            <div className="target-language-area">
-              <span className="target-language-label">{t('textTranslate.targetLanguage')}</span>
-              <select
-                value={targetLanguage}
-                className="target-language-select"
-                onChange={(e) => setTargetLanguage(e.target.value)}
-              >
-                {languageOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-        <button
-          className={`translate-btn${translateStatus === 'translating' ? ' translate-btn-translating' : ''}`}
-          disabled={translateStatus === 'translating' || !inputText.trim()}
-          onClick={onTranslateClick}
-        >
-          {translateStatus === 'translating'
-            ? t('textTranslate.translating')
-            : translateStatus === 'done' || translateStatus === 'error'
-              ? t('textTranslate.retranslate')
-              : t('textTranslate.translate')}
-        </button>
-      </div>
+      {/* 主输入区域（占满剩余空间） */}
+      <div className="input-container">
+        <textarea
+          ref={inputRef}
+          autoFocus
+          value={inputText}
+          className="text-input"
+          placeholder={t('textTranslate.inputPlaceholder')}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+        />
 
-      {/* 译文面板 */}
-      {hasTranslation && (
-        <div className="translation-panel">
-          {/* 面板头部 */}
-          <div className="panel-header" onDoubleClick={onClose}>
-            {fromCache && <span className="cache-hint">{t('controlBar.cacheHit')}</span>}
-            <button
-              className={`copy-btn${copyFeedback ? ' copy-btn-copied' : ''}`}
-              onClick={onCopyTranslation}
-              title={t('textTranslate.copyTranslation')}
+        {/* 底部控制条 */}
+        <div className="controls-bar">
+          {hasTranslation && fromCache && (
+            <span className="cache-hint">{t('controlBar.cacheHit')}</span>
+          )}
+          <span className="shortcut-hint">{t('textTranslate.shortcutHint')}</span>
+          <div className="controls-right">
+            {hasTranslation && (
+              <button
+                className={`copy-btn${copyFeedback ? ' copy-btn-copied' : ''}`}
+                onClick={onCopyTranslation}
+                title={t('textTranslate.copyTranslation')}
+              >
+                {!copyFeedback ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            )}
+            <select
+              value={targetLanguage}
+              className="target-language-select"
+              onChange={(e) => setTargetLanguage(e.target.value)}
             >
-              {!copyFeedback ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
+              {languageOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className={`translate-btn${translateStatus === 'translating' ? ' translate-btn-translating' : ''}`}
+              disabled={translateStatus === 'translating' || !inputText.trim()}
+              onClick={onTranslateClick}
+            >
+              {translateStatus === 'translating'
+                ? t('textTranslate.translating')
+                : translateStatus === 'done' || translateStatus === 'error'
+                  ? t('textTranslate.retranslate')
+                  : t('textTranslate.translate')}
             </button>
           </div>
-          {/* 译文内容 */}
+        </div>
+      </div>
+
+      {/* 译文面板（有翻译结果时显示在输入框下方） */}
+      {hasTranslation && (
+        <div className="translation-panel">
           <div className="translation-content">{translatedText}</div>
         </div>
       )}

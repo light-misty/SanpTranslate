@@ -149,7 +149,7 @@ export default {
   // Text translate
   textTranslate: {
     title: 'Text Translate',
-    inputPlaceholder: 'Enter or paste text to translate...',
+    inputPlaceholder: 'Ctrl + Enter to translate',
     shortcutHint: 'Ctrl + Enter to translate',
     translate: 'Translate',
     retranslate: 'Re-translate',
