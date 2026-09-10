@@ -189,7 +189,7 @@ export default {
       '  * The path is located in the parent directory of the repository, in the format `../<current-repo-name>-<suffix-part-of-branch-name>`.',
       '  * If the generated branch name already exists, automatically add a numeric suffix (e.g., `-2`).',
       '',
-      'After creation, switch to the worktree directory, then execute the following tasks:',
+      'After creation, publish the Branch, switch to the worktree directory, then execute the following tasks:',
       '',
     ].join('\n'),
     // Built-in template: Commit and push instructions
