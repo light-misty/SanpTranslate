@@ -148,6 +148,26 @@ pub fn create_quick_fill_window(app: &AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
+/// 文本翻译窗口几何计算（纯函数，便于多分辨率回归测试）
+/// 返回 (x, y, 宽, 高)，单位为逻辑像素
+/// 高度必须与前端"输入框形态"一致：过高会在输入框下方留下透明的鼠标占用区域
+fn text_translate_window_geometry(
+    monitor_x: f64,
+    monitor_y: f64,
+    monitor_w: f64,
+    monitor_h: f64,
+) -> (f64, f64, f64, f64) {
+    // 窗口尺寸：高度仅覆盖输入框与底部悬浮控件
+    let window_w = 600.0;
+    let window_h = 100.0;
+
+    // 屏幕下方居中，底部预留 80px
+    let x = monitor_x + (monitor_w - window_w) / 2.0;
+    let y = monitor_y + monitor_h - window_h - 80.0;
+
+    (x, y, window_w, window_h)
+}
+
 /// 创建文本翻译窗口（单例模式，屏幕下方居中）
 pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
     // 单例模式：如果已存在则聚焦
@@ -179,13 +199,7 @@ pub fn create_text_translate_window(app: &AppHandle) -> Result<(), AppError> {
     let monitor_x = monitor.position().x as f64 / scale_factor;
     let monitor_y = monitor.position().y as f64 / scale_factor;
 
-    // 窗口尺寸
-    let window_w = 600.0;
-    let window_h = 400.0;
-
-    // 屏幕下方居中
-    let x = monitor_x + (monitor_w - window_w) / 2.0;
-    let y = monitor_y + monitor_h - window_h - 80.0;
+    let (x, y, window_w, window_h) = text_translate_window_geometry(monitor_x, monitor_y, monitor_w, monitor_h);
 
     let title = if is_zh { "SnapTranslate - 文本翻译" } else { "SnapTranslate - Text Translate" };
 
@@ -437,5 +451,45 @@ fn get_config_language(app: &AppHandle) -> String {
             Err(_) => "auto".to_string(),
         },
         Err(_) => "auto".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 断言几何函数的固定不变式：宽 600、高 100、水平居中、距屏幕底部 80px
+    fn assert_geometry(monitor_x: f64, monitor_y: f64, monitor_w: f64, monitor_h: f64) {
+        let (x, y, w, h) = text_translate_window_geometry(monitor_x, monitor_y, monitor_w, monitor_h);
+        assert_eq!(w, 600.0, "窗口宽度应为 600");
+        assert_eq!(h, 100.0, "窗口高度应为 100（与输入框形态匹配，避免下方透明占用区域）");
+        assert_eq!(y + h + 80.0, monitor_y + monitor_h, "窗口底部应距屏幕底部 80px");
+        assert_eq!(x, monitor_x + (monitor_w - w) / 2.0, "窗口应在屏幕水平居中");
+    }
+
+    #[test]
+    fn geometry_1366x768() {
+        assert_geometry(0.0, 0.0, 1366.0, 768.0);
+    }
+
+    #[test]
+    fn geometry_1920x1080() {
+        assert_geometry(0.0, 0.0, 1920.0, 1080.0);
+    }
+
+    #[test]
+    fn geometry_2560x1440() {
+        assert_geometry(0.0, 0.0, 2560.0, 1440.0);
+    }
+
+    #[test]
+    fn geometry_3840x2160() {
+        assert_geometry(0.0, 0.0, 3840.0, 2160.0);
+    }
+
+    #[test]
+    fn geometry_offset_monitor() {
+        // 副屏（如位于主屏左侧、原点非 0 的显示器）
+        assert_geometry(-1920.0, 0.0, 1920.0, 1080.0);
     }
 }
