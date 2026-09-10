@@ -159,7 +159,7 @@ fn text_translate_window_geometry(
 ) -> (f64, f64, f64, f64) {
     // 窗口尺寸：高度仅覆盖输入框与底部悬浮控件
     let window_w = 600.0;
-    let window_h = 160.0;
+    let window_h = 100.0;
 
     // 屏幕下方居中，底部预留 80px
     let x = monitor_x + (monitor_w - window_w) / 2.0;
@@ -458,11 +458,11 @@ fn get_config_language(app: &AppHandle) -> String {
 mod tests {
     use super::*;
 
-    /// 断言几何函数的固定不变式：宽 600、高 160、水平居中、距屏幕底部 80px
+    /// 断言几何函数的固定不变式：宽 600、高 100、水平居中、距屏幕底部 80px
     fn assert_geometry(monitor_x: f64, monitor_y: f64, monitor_w: f64, monitor_h: f64) {
         let (x, y, w, h) = text_translate_window_geometry(monitor_x, monitor_y, monitor_w, monitor_h);
         assert_eq!(w, 600.0, "窗口宽度应为 600");
-        assert_eq!(h, 160.0, "窗口高度应为 160（与输入框形态匹配，避免下方透明占用区域）");
+        assert_eq!(h, 100.0, "窗口高度应为 100（与输入框形态匹配，避免下方透明占用区域）");
         assert_eq!(y + h + 80.0, monitor_y + monitor_h, "窗口底部应距屏幕底部 80px");
         assert_eq!(x, monitor_x + (monitor_w - w) / 2.0, "窗口应在屏幕水平居中");
     }
