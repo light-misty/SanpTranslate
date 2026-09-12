@@ -907,3 +907,97 @@ pub fn reveal_in_explorer(path: String) -> Result<(), String> {
 
     Ok(())
 }
+
+// ===== 任务待办相关命令 =====
+
+#[tauri::command]
+pub fn get_tasks(app: tauri::AppHandle) -> Result<Vec<crate::task::TaskItem>, String> {
+    let task_service = app.state::<std::sync::Mutex<crate::task::TaskService>>();
+    let service = task_service.lock().map_err(|e| {
+        log::error!("[CMD] 锁定 TaskService 失败: {}", e);
+        e.to_string()
+    })?;
+    service.get_all_tasks().map_err(|e| {
+        log::error!("[CMD] 获取任务列表失败: {}", e);
+        e.to_string()
+    })
+}
+
+#[tauri::command]
+pub fn add_task(
+    title: String,
+    description: Option<String>,
+    priority: Option<i32>,
+    app: tauri::AppHandle,
+) -> Result<crate::task::TaskItem, String> {
+    log::info!("[CMD] add_task 被调用, title={}", title);
+    let task_service = app.state::<std::sync::Mutex<crate::task::TaskService>>();
+    let service = task_service.lock().map_err(|e| {
+        log::error!("[CMD] 锁定 TaskService 失败: {}", e);
+        e.to_string()
+    })?;
+    let new_task = crate::task::NewTask {
+        title,
+        description,
+        priority,
+    };
+    service.add_task(new_task).map_err(|e| {
+        log::error!("[CMD] 添加任务失败: {}", e);
+        e.to_string()
+    })
+}
+
+#[tauri::command]
+pub fn update_task(
+    id: i64,
+    title: Option<String>,
+    description: Option<Option<String>>,
+    completed: Option<bool>,
+    priority: Option<i32>,
+    app: tauri::AppHandle,
+) -> Result<Option<crate::task::TaskItem>, String> {
+    log::info!("[CMD] update_task 被调用, id={}", id);
+    let task_service = app.state::<std::sync::Mutex<crate::task::TaskService>>();
+    let service = task_service.lock().map_err(|e| {
+        log::error!("[CMD] 锁定 TaskService 失败: {}", e);
+        e.to_string()
+    })?;
+    let update = crate::task::UpdateTask {
+        title,
+        description,
+        completed,
+        priority,
+    };
+    service.update_task(id, update).map_err(|e| {
+        log::error!("[CMD] 更新任务失败: {}", e);
+        e.to_string()
+    })
+}
+
+#[tauri::command]
+pub fn delete_task(id: i64, app: tauri::AppHandle) -> Result<bool, String> {
+    log::info!("[CMD] delete_task 被调用, id={}", id);
+    let task_service = app.state::<std::sync::Mutex<crate::task::TaskService>>();
+    let service = task_service.lock().map_err(|e| {
+        log::error!("[CMD] 锁定 TaskService 失败: {}", e);
+        e.to_string()
+    })?;
+    service.delete_task(id).map_err(|e| {
+        log::error!("[CMD] 删除任务失败: {}", e);
+        e.to_string()
+    })
+}
+
+#[tauri::command]
+pub fn clear_completed_tasks(app: tauri::AppHandle) -> Result<usize, String> {
+    log::info!("[CMD] clear_completed_tasks 被调用");
+    let task_service = app.state::<std::sync::Mutex<crate::task::TaskService>>();
+    let service = task_service.lock().map_err(|e| {
+        log::error!("[CMD] 锁定 TaskService 失败: {}", e);
+        e.to_string()
+    })?;
+    service.clear_completed().map_err(|e| {
+        log::error!("[CMD] 清空已完成任务失败: {}", e);
+        e.to_string()
+    })
+}

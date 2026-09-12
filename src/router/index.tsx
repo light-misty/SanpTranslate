@@ -8,6 +8,7 @@ const SettingsView = lazy(() => import('@/views/SettingsView'))
 const HistoryView = lazy(() => import('@/views/HistoryView'))
 const TextTranslateView = lazy(() => import('@/views/TextTranslateView'))
 const QuickFillView = lazy(() => import('@/views/QuickFillView'))
+const TaskTodoView = lazy(() => import('@/views/TaskTodoView'))
 
 /** 路由出口组件 */
 export default function AppRoutes() {
@@ -20,6 +21,7 @@ export default function AppRoutes() {
         <Route path="/history" element={<HistoryView />} />
         <Route path="/text-translate" element={<TextTranslateView />} />
         <Route path="/quick-fill" element={<QuickFillView />} />
+        <Route path="/task-todo" element={<TaskTodoView />} />
       </Routes>
     </Suspense>
   )

@@ -435,10 +435,43 @@ pub fn get_pin_image(app: &AppHandle, window_id: &str) -> Result<Option<String>,
     Ok(store.images.remove(window_id))
 }
 
+/// 关闭贴图窗口
 pub fn close_pin_window(app: &AppHandle, window_id: &str) -> Result<(), AppError> {
     if let Some(window) = app.get_webview_window(window_id) {
         window.destroy().map_err(|e| AppError::ConfigError(format!("关闭贴图窗口 {} 失败: {}", window_id, e)))?;
     }
+    Ok(())
+}
+
+// ===== 任务待办窗口 =====
+
+/// 创建任务待办窗口（单例模式，居中显示，最大化）
+pub fn create_task_todo_window(app: &AppHandle) -> Result<(), AppError> {
+    // 单例模式：如果已存在则聚焦
+    if let Some(window) = app.get_webview_window("task-todo") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    // 读取配置以确定界面语言
+    let language = get_config_language(app);
+    let is_zh = resolve_language(&language) == "zh-CN";
+    let title = if is_zh {
+        "SnapTranslate - 任务待办"
+    } else {
+        "SnapTranslate - Task Todo"
+    };
+
+    WebviewWindowBuilder::new(app, "task-todo", WebviewUrl::App("/task-todo".into()))
+        .title(title)
+        .inner_size(700.0, 550.0)
+        .center()
+        .maximized(true)
+        .resizable(true)
+        .build()
+        .map_err(|e| AppError::ConfigError(format!("创建任务待办窗口失败: {}", e)))?;
+
     Ok(())
 }
 

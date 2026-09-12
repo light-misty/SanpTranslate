@@ -8,6 +8,7 @@ mod hotkey;
 mod logging;
 mod ocr;
 mod quickfill;
+mod task;
 mod translate;
 mod tray;
 mod update;
@@ -129,7 +130,13 @@ pub fn run() {
             commands::reveal_in_explorer,
             commands::check_shortcut_conflict,
             commands::set_shortcut_recording,
-            commands::save_quick_fills
+            commands::save_quick_fills,
+            // 任务待办命令
+            commands::get_tasks,
+            commands::add_task,
+            commands::update_task,
+            commands::delete_task,
+            commands::clear_completed_tasks
         ])
         // 任一窗口销毁时复位快捷键录制状态，避免录制标志残留导致快捷键被转发而失效
         .on_window_event(|window, event| {
@@ -225,6 +232,20 @@ pub fn run() {
             if let Err(e) = quickfill::register_quick_fill_shortcuts(app.handle(), &app_config.quick_fills) {
                 log::error!("注册快捷填充快捷键失败: {}", e);
             }
+
+            // 初始化任务待办服务（SQLite 数据库）
+            let data_dir = app.path().app_data_dir()
+                .map_err(|e| {
+                    log::error!("获取应用数据目录失败: {}", e);
+                    error::AppError::ConfigError(format!("获取应用数据目录失败: {}", e))
+                })?;
+            let task_db_path = data_dir.join("data").join("tasks.db");
+            let task_service = task::TaskService::new(&task_db_path)
+                .map_err(|e| {
+                    log::error!("初始化任务待办服务失败: {}", e);
+                    e
+                })?;
+            app.manage(Mutex::new(task_service));
 
             // 自动更新检查（仅 release 模式且开启了自动更新时执行）
             #[cfg(all(desktop, not(debug_assertions)))]

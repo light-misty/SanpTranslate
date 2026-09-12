@@ -23,6 +23,7 @@ struct TrayText {
     capture_translate: String,
     pin_clipboard: String,
     text_translate: String,
+    task_todo: String,
     quick_fill: String,
     history: String,
     settings: String,
@@ -40,6 +41,7 @@ fn get_tray_text(language: &str, shortcuts: &ShortcutConfig) -> TrayText {
             capture_translate: format!("框选截图翻译  {}", shortcuts.capture),
             pin_clipboard: format!("从剪贴板贴图  {}", shortcuts.pin_clipboard),
             text_translate: format!("文本翻译  {}", shortcuts.text_translate),
+            task_todo: "任务待办".to_string(),
             quick_fill: "快捷文本填充".to_string(),
             history: "截图与翻译历史".to_string(),
             settings: "设置".to_string(),
@@ -51,6 +53,7 @@ fn get_tray_text(language: &str, shortcuts: &ShortcutConfig) -> TrayText {
             capture_translate: format!("Capture & Translate  {}", shortcuts.capture),
             pin_clipboard: format!("Pin from Clipboard  {}", shortcuts.pin_clipboard),
             text_translate: format!("Text Translate  {}", shortcuts.text_translate),
+            task_todo: "Task Todo".to_string(),
             quick_fill: "Quick Text Fill".to_string(),
             history: "Translation History".to_string(),
             settings: "Settings".to_string(),
@@ -83,6 +86,14 @@ fn build_tray_menu(app: &AppHandle, text: &TrayText) -> Result<Menu<tauri::Wry>,
         true,
         None::<&str>,
     )?;
+    let separator1 = PredefinedMenuItem::separator(app)?;
+    let task_todo_item = MenuItem::with_id(
+        app,
+        "task_todo",
+        &text.task_todo,
+        true,
+        None::<&str>,
+    )?;
     let quick_fill_item = MenuItem::with_id(
         app,
         "quick_fill",
@@ -90,7 +101,6 @@ fn build_tray_menu(app: &AppHandle, text: &TrayText) -> Result<Menu<tauri::Wry>,
         true,
         None::<&str>,
     )?;
-    let separator1 = PredefinedMenuItem::separator(app)?;
     let history_item = MenuItem::with_id(app, "history", &text.history, true, None::<&str>)?;
     let separator2 = PredefinedMenuItem::separator(app)?;
     let settings_item = MenuItem::with_id(app, "settings", &text.settings, true, None::<&str>)?;
@@ -111,7 +121,8 @@ fn build_tray_menu(app: &AppHandle, text: &TrayText) -> Result<Menu<tauri::Wry>,
             &pin_clipboard_item,
             &text_translate_item,
             &separator1,
-            // 快捷文本填充与历史记录位于同一分隔区域
+            // 任务待办位于快捷文本填充上方
+            &task_todo_item,
             &quick_fill_item,
             &history_item,
             &separator2,
@@ -184,6 +195,11 @@ pub fn create_tray(app: &AppHandle, shortcuts: &ShortcutConfig, language: &str) 
         "text_translate" => {
             if let Err(e) = crate::window::create_text_translate_window(app) {
                 log::error!("创建文本翻译窗口失败: {}", e);
+            }
+        }
+        "task_todo" => {
+            if let Err(e) = crate::window::create_task_todo_window(app) {
+                log::error!("创建任务待办窗口失败: {}", e);
             }
         }
         "quick_fill" => {

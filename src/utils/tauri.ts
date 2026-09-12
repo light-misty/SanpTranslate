@@ -44,6 +44,50 @@ export interface QuickFillEntry {
   template_id?: string
 }
 
+// ===== 任务待办相关接口 =====
+
+/** 任务条目 */
+export interface TaskItem {
+  /** 任务 ID */
+  id: number
+  /** 任务标题 */
+  title: string
+  /** 任务描述（可选） */
+  description: string | null
+  /** 是否已完成 */
+  completed: boolean
+  /** 优先级（0=低, 1=中, 2=高） */
+  priority: number
+  /** 创建时间（ISO 8601 格式） */
+  created_at: string
+  /** 更新时间（ISO 8601 格式） */
+  updated_at: string
+  /** 完成时间（ISO 8601 格式），未完成时为 null */
+  completed_at: string | null
+}
+
+/** 创建任务的请求数据 */
+export interface NewTask {
+  /** 任务标题 */
+  title: string
+  /** 任务描述（可选） */
+  description?: string
+  /** 优先级（0=低, 1=中, 2=高），默认为 1 */
+  priority?: number
+}
+
+/** 更新任务的请求数据 */
+export interface UpdateTask {
+  /** 任务标题（可选） */
+  title?: string
+  /** 任务描述（可选，null 表示清除描述） */
+  description?: string | null
+  /** 是否已完成（可选） */
+  completed?: boolean
+  /** 优先级（可选） */
+  priority?: number
+}
+
 /** 区域裁剪结果，包含图像数据和窗口位置信息 */
 export interface CropResult {
   /** Base64 编码的 PNG 图像数据 */
@@ -294,4 +338,31 @@ export async function setShortcutRecording(recording: boolean): Promise<void> {
 /** 监听后端转发的已注册快捷键按下事件（后端格式字符串，如 "Ctrl+Alt+1"），返回取消监听函数 */
 export async function onShortcutRecord(callback: (shortcut: string) => void): Promise<UnlistenFn> {
   return listen<string>('shortcut-record', (event) => callback(event.payload))
+}
+
+// ===== 任务待办相关命令 =====
+
+/** 获取所有任务列表 */
+export async function getTasks(): Promise<TaskItem[]> {
+  return invoke<TaskItem[]>('get_tasks')
+}
+
+/** 添加新任务 */
+export async function addTask(newTask: NewTask): Promise<TaskItem> {
+  return invoke<TaskItem>('add_task', { title: newTask.title, description: newTask.description, priority: newTask.priority })
+}
+
+/** 更新任务 */
+export async function updateTask(id: number, update: UpdateTask): Promise<TaskItem | null> {
+  return invoke<TaskItem | null>('update_task', { id, title: update.title, description: update.description, completed: update.completed, priority: update.priority })
+}
+
+/** 删除任务 */
+export async function deleteTask(id: number): Promise<boolean> {
+  return invoke<boolean>('delete_task', { id })
+}
+
+/** 清空所有已完成的任务 */
+export async function clearCompletedTasks(): Promise<number> {
+  return invoke<number>('clear_completed_tasks')
 }
