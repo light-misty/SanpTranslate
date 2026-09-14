@@ -179,6 +179,7 @@ export default {
     templateGitWorktreeText: [
       'Please create a new worktree for the current Git repository:',
       '- All file modifications and git operations must be completed in the new directory after switching.',
+      '- This task allows and requires you to commit and push. Make staged commits, commit once for each completed feature, then continue with the next task, push after each commit, committing all code at once is prohibited, staging commits after developing all code is prohibited, and pushing to the main branch is prohibited.',
       '- Only use git commit to complete submissions. It is forbidden to directly call git commit-tree, git hash-object -t commit, git mktree and other low-level plumbing commands to construct commits—unless you explicitly know what you are doing, in which case you must explicitly pass -p <parent-commit> to indicate the parent, and immediately verify that the object contains the parent line with git cat-file -p <new-commit>.',
       '- If there is a problem with the push function, only commit without pushing.',
       '- Self-check is mandatory before any git add / git commit. Verify the changed files before committing to ensure nothing is missed.',
@@ -194,6 +195,6 @@ export default {
     ].join('\n'),
     // Built-in template: Commit and push instructions
     templateCommitPushTitle: 'Commit and Push Instructions',
-    templateCommitPushText: 'This task allows and requires you to commit and push. Make staged commits, commit once for each completed feature, then continue with the next task, push after each commit, committing all code at once is prohibited, and developing all code before staged commits is prohibited. Self-check is mandatory before any git add / git commit. Verify the changed files before committing to ensure nothing is missed.',
+    templateCommitPushText: 'This task allows and requires you to commit and push. Make staged commits, commit once for each completed feature, then continue with the next task, push after each commit, committing all code at once is prohibited, staging commits after developing all code is prohibited, and pushing to the main branch is prohibited. Self-check is mandatory before any git add / git commit. Verify the changed files before committing to ensure nothing is missed.',
   },
 }
